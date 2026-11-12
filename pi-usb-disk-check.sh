@@ -97,14 +97,10 @@ for cmd in smartctl lsblk blockdev awk grep sed dd flock date stat sync; do
   }
 done
 
-if ! dd --help 2>&1 | grep -q 'count_bytes'; then
-  echo "GNU dd with iflag=count_bytes is required." >&2
-  exit 1
-fi
-if ! dd --help 2>&1 | grep -q 'seek_bytes'; then
-  echo "GNU dd with oflag=seek_bytes is required." >&2
-  exit 1
-fi
+# Do not require GNU dd byte-oriented flags. Raspberry Pi installations can
+# provide a dd build without count_bytes/skip_bytes/seek_bytes. The surface I/O
+# code below uses portable MiB block offsets and handles the final partial MiB
+# separately, so ordinary coreutils/BusyBox-style dd is sufficient.
 
 CURRENT_SERIAL=""
 CURRENT_MODEL=""
@@ -562,12 +558,34 @@ Fortschritt beim Wiederanlauf: $(human_gb "$offset") / $(human_gb "$total") ($(p
     (( offset + chunk_bytes > total )) && chunk_bytes=$((total - offset))
 
     rc=0
+    # Use MiB-based skip/seek so the script also works with dd implementations
+    # that do not support GNU's count_bytes/skip_bytes/seek_bytes flags.
+    # Checkpoints are chunk-aligned; only the final partial MiB needs bs=1.
+    local mib=1048576 full_mib tail_bytes block_offset tail_offset
+    full_mib=$((chunk_bytes / mib))
+    tail_bytes=$((chunk_bytes % mib))
+    block_offset=$((offset / mib))
+
     if [[ "$phase" == "write" ]]; then
-      dd if=/dev/zero of="$dev" bs=16M count="$chunk_bytes" iflag=count_bytes \
-        seek="$offset" oflag=seek_bytes conv=notrunc,fsync status=none || rc=$?
+      if (( full_mib > 0 )); then
+        dd if=/dev/zero of="$dev" bs=1M count="$full_mib" seek="$block_offset" \
+          conv=notrunc,fsync status=none || rc=$?
+      fi
+      if (( rc == 0 && tail_bytes > 0 )); then
+        tail_offset=$((offset + full_mib * mib))
+        dd if=/dev/zero of="$dev" bs=1 count="$tail_bytes" seek="$tail_offset" \
+          conv=notrunc,fsync status=none || rc=$?
+      fi
     else
-      dd if="$dev" of=/dev/null bs=16M skip="$offset" count="$chunk_bytes" \
-        iflag=skip_bytes,count_bytes status=none || rc=$?
+      if (( full_mib > 0 )); then
+        dd if="$dev" of=/dev/null bs=1M skip="$block_offset" count="$full_mib" \
+          status=none || rc=$?
+      fi
+      if (( rc == 0 && tail_bytes > 0 )); then
+        tail_offset=$((offset + full_mib * mib))
+        dd if="$dev" of=/dev/null bs=1 skip="$tail_offset" count="$tail_bytes" \
+          status=none || rc=$?
+      fi
     fi
 
     if (( rc != 0 )); then
