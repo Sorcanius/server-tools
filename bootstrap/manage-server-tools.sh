@@ -11,23 +11,15 @@ set -Eeuo pipefail
 # Einmalige Installation auf einem neuen Gerät:
 #
 #   curl -fsSL \
-#     https://raw.githubusercontent.com/Sorcanius/server-tools/main/manage-server-tools.sh \
+#     https://raw.githubusercontent.com/Sorcanius/server-tools/main/bootstrap/manage-server-tools.sh \
 #     | sudo bash -s -- install
 #
 # Bereits vorhandene Installation hart mit GitHub synchronisieren:
 #
-#   bash /opt/server-tools/manage-server-tools.sh sync
-#
-# Automatik:
-#   - installiert, wenn /opt/server-tools noch nicht vorhanden ist
-#   - synchronisiert sonst hart mit GitHub
-#
-#   curl -fsSL \
-#     https://raw.githubusercontent.com/Sorcanius/server-tools/main/manage-server-tools.sh \
-#     | sudo bash -s -- auto
+#   bash /opt/server-tools/bootstrap/manage-server-tools.sh sync
 #
 # WICHTIG:
-# - GitHub ist die Quelle der Wahrheit.
+# - GitHub ist die Quelle der Wahrheit für /opt/server-tools.
 # - Lokale Änderungen an versionierten Dateien werden bei "sync" verworfen.
 # - Nicht ignorierte, unversionierte Dateien unter /opt/server-tools werden
 #   bei "sync" gelöscht.
@@ -48,14 +40,6 @@ Verwendung:
   $0 auto      Installieren, falls nicht vorhanden; sonst synchronisieren
   $0 status    Git-Status und aktuellen Commit anzeigen
   $0 help      Diese Hilfe anzeigen
-
-Optionale Umgebungsvariablen:
-  SERVER_TOOLS_REPO    Default: $REPO_URL
-  SERVER_TOOLS_DIR     Default: $TARGET_DIR
-  SERVER_TOOLS_REMOTE  Default: $REMOTE_NAME
-  SERVER_TOOLS_BRANCH  Default: $REMOTE_BRANCH
-  SERVER_TOOLS_OWNER   Besitzer bei "install"
-                       Default: SUDO_USER bzw. aktueller Benutzer
 EOF
 }
 
@@ -100,7 +84,8 @@ run_as_user() {
 }
 
 mark_scripts_executable() {
-    find "$TARGET_DIR" -maxdepth 1 -type f -name '*.sh' -exec chmod +x {} +
+    # Rekursiv: auch Skripte in bootstrap/, jobs/, services/, tools/ usw.
+    find "$TARGET_DIR" -type f -name '*.sh' -exec chmod +x {} +
 }
 
 install_repo() {
@@ -111,7 +96,7 @@ install_repo() {
     if [[ -d "$TARGET_DIR/.git" ]]; then
         echo "ABBRUCH: $TARGET_DIR ist bereits ein Git-Repository."
         echo "Für ein Update:"
-        echo "  bash $TARGET_DIR/manage-server-tools.sh sync"
+        echo "  bash $TARGET_DIR/bootstrap/manage-server-tools.sh sync"
         exit 1
     fi
 
@@ -146,7 +131,7 @@ install_repo() {
     echo
     echo "FERTIG: $TARGET_DIR"
     echo "Später synchronisieren mit:"
-    echo "  bash $TARGET_DIR/manage-server-tools.sh sync"
+    echo "  bash $TARGET_DIR/bootstrap/manage-server-tools.sh sync"
 }
 
 sync_repo() {
@@ -174,16 +159,14 @@ sync_repo() {
 
     run_as_user "$owner" git -C "$TARGET_DIR" fetch --prune "$REMOTE_NAME"
     run_as_user "$owner" git -C "$TARGET_DIR" reset --hard "$REMOTE_NAME/$REMOTE_BRANCH"
-
-    # Löscht unversionierte, nicht ignorierte Dateien/Verzeichnisse.
-    # Ignorierte Dateien werden absichtlich NICHT mit -x gelöscht.
     run_as_user "$owner" git -C "$TARGET_DIR" clean -fd
 
     mark_scripts_executable
 
     echo
     echo "FERTIG: server-tools ist synchron."
-    run_as_user "$owner" git -C "$TARGET_DIR" log -1         --format='Commit: %h  %cd  %s' --date=iso-local
+    run_as_user "$owner" git -C "$TARGET_DIR" log -1 \
+        --format='Commit: %h  %cd  %s' --date=iso-local
 }
 
 show_status() {
@@ -201,7 +184,8 @@ show_status() {
     echo "Repository: $TARGET_DIR"
     echo "Besitzer  : $owner"
     run_as_user "$owner" git -C "$TARGET_DIR" status --short --branch
-    run_as_user "$owner" git -C "$TARGET_DIR" log -1         --format='Commit    : %h%nDatum     : %cd%nNachricht : %s' --date=iso-local
+    run_as_user "$owner" git -C "$TARGET_DIR" log -1 \
+        --format='Commit    : %h%nDatum     : %cd%nNachricht : %s' --date=iso-local
 }
 
 case "${1:-help}" in

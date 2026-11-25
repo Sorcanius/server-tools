@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Installiert einen regelmäßigen Cron-Job für den server-tools-Sync.
+# Richtet den regelmäßigen GitHub -> /opt/server-tools Sync per Cron ein.
 #
 # Standard:
-#   sudo /opt/server-tools/setup-server-tools-cron.sh daily
+#   sudo /opt/server-tools/bootstrap/setup-server-tools-sync.sh daily
 #
 # Alternativ:
-#   sudo /opt/server-tools/setup-server-tools-cron.sh weekly
+#   sudo /opt/server-tools/bootstrap/setup-server-tools-sync.sh weekly
 #
 # Erzeugt:
 #   /etc/cron.d/server-tools-sync
@@ -16,11 +16,10 @@ set -Eeuo pipefail
 #   /var/log/server-tools-sync.log
 #
 # Vorhandene Cron-Dateien werden NICHT überschrieben.
-# Zum Ändern zuerst /etc/cron.d/server-tools-sync löschen und erneut ausführen.
 
 CRON_FILE="/etc/cron.d/server-tools-sync"
 LOG_FILE="/var/log/server-tools-sync.log"
-SYNC_SCRIPT="/opt/server-tools/manage-server-tools.sh"
+SYNC_SCRIPT="/opt/server-tools/bootstrap/manage-server-tools.sh"
 MODE="${1:-daily}"
 
 if (( EUID != 0 )); then
