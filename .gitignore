@@ -1,0 +1,21 @@
+# Local environment / credential files
+.env
+.env.*
+*.env
+
+# Keys and certificates that may contain private material
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Common credential / secret filenames
+credentials
+credentials.*
+credentials*
+secrets
+secrets.*
+secrets*
+
+# Local override files
+*.local
