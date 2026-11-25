@@ -12,11 +12,11 @@ set -Eeuo pipefail
 # the original requester's IP address to each dnsmasq log line. This lets us
 # attribute an upstream forward to the client that caused it.
 
-CONFIG_FILE="${PIHOLE_MQTT_CONFIG:-/etc/pihole-mqtt.env}"
+CONFIG_FILE="${MQTT_CONFIG:-/etc/mqtt.env}"
 
 if [[ ! -r "$CONFIG_FILE" ]]; then
     echo "ERROR: MQTT config not readable: $CONFIG_FILE" >&2
-    echo "Run setup-pihole-mqtt-env.sh first and then edit the file." >&2
+    echo "Run setup-mqtt-env.sh first and then edit the file." >&2
     exit 1
 fi
 
@@ -27,13 +27,16 @@ source "$CONFIG_FILE"
 : "${MQTT_PORT:=1883}"
 : "${MQTT_USER:=}"
 : "${MQTT_PASSWORD:=}"
-: "${MQTT_BASE_TOPIC:=home/device/pihole}"
-: "${MQTT_QOS:=0}"
-: "${PIHOLE_LOG:=/var/log/pihole/pihole.log}"
-: "${UNBOUND_TARGET:=127.0.0.1#5335}"
-: "${PUBLISH_REQUESTS_TO_UNBOUND:=true}"
-: "${PUBLISH_REQUESTS_TO_PIHOLE:=false}"
-: "${RESOLVE_CLIENT_NAMES:=true}"
+
+# Pi-hole-specific settings belong in this script, not in the generic MQTT
+# credential file.
+readonly MQTT_BASE_TOPIC="home/device/pihole"
+readonly MQTT_QOS="0"
+readonly PIHOLE_LOG="/var/log/pihole/pihole.log"
+readonly UNBOUND_TARGET="127.0.0.1#5335"
+readonly PUBLISH_REQUESTS_TO_UNBOUND="true"
+readonly PUBLISH_REQUESTS_TO_PIHOLE="false"
+readonly RESOLVE_CLIENT_NAMES="true"
 
 if [[ "$MQTT_HOST" == "EDIT_ME" || "$MQTT_USER" == "EDIT_ME" || "$MQTT_PASSWORD" == "EDIT_ME" ]]; then
     echo "ERROR: $CONFIG_FILE still contains EDIT_ME placeholders." >&2
