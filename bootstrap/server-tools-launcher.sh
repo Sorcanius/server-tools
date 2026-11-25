@@ -2,10 +2,13 @@
 set -Eeuo pipefail
 umask 022
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin
-readonly target=/opt/server-tools repo=https://github.com/Sorcanius/server-tools.git
+export GIT_SSH_COMMAND='/usr/bin/ssh -F /dev/null -i /etc/server-tools/credentials/github.key -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/etc/server-tools/credentials/github_known_hosts -o GlobalKnownHostsFile=/dev/null -o HostKeyAlgorithms=ssh-ed25519 -o ConnectTimeout=15'
+export GIT_TERMINAL_PROMPT=0
+readonly target=/opt/server-tools repo=git@github.com:Sorcanius/server-tools.git
 readonly state=/var/lib/server-tools/bootstrap runtime=/run/server-tools
 die(){ echo "server-tools: $*" >&2; exit 1; }
 [[ $EUID == 0 ]] || die "Root required"
+[[ -f /etc/server-tools/credentials/github.key && -f /etc/server-tools/credentials/github_known_hosts ]] || die "GitHub SSH credentials missing"
 [[ ! -L /opt && ! -L "$target" ]] || die "Unsafe checkout path"
 install -d -m 755 -o root -g root "$runtime" "$runtime/locks" "$state"
 exec 9>"$runtime/locks/launcher.lock"
