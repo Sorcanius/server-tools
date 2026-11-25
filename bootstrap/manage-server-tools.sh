@@ -4,7 +4,19 @@ umask 022
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin
 export GIT_SSH_COMMAND='/usr/bin/ssh -F /dev/null -i /etc/server-tools/credentials/github.key -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/etc/server-tools/credentials/github_known_hosts -o GlobalKnownHostsFile=/dev/null -o HostKeyAlgorithms=ssh-ed25519 -o ConnectTimeout=15'
 export GIT_TERMINAL_PROMPT=0
-readonly repo=git@github.com:Sorcanius/server-tools.git target=/opt/server-tools
+readonly target=/opt/server-tools
+readonly https_repo=https://github.com/Sorcanius/server-tools.git ssh_repo=git@github.com:Sorcanius/server-tools.git
+readonly auth_file=/etc/server-tools/config/github.conf
+read_auth(){
+ local mode
+ [[ -f "$auth_file" && ! -L "$auth_file" ]] || return 1
+ mode=$(awk -F= '$1=="AUTH_METHOD" && NF==2 {v=$2} END {print v}' "$auth_file")
+ case "$mode" in https|ssh) printf '%s\n' "$mode";; *) return 1;; esac
+}
+repo_for(){
+ case "$1" in https) printf '%s\n' "$https_repo";; ssh) printf '%s\n' "$ssh_repo";; *) return 1;; esac
+}
+
 readonly account=server-tools launcher=/usr/local/sbin/server-tools-launcher
 die(){ echo "server-tools: $*" >&2; exit 1; }
 require_root(){ [[ $EUID == 0 ]] || die "Root required"; }
@@ -38,6 +50,7 @@ setup_dirs(){
  install -d -o "$account" -g "$account" -m 750 /var/lib/server-tools/mqtt /var/log/server-tools/jobs
 }
 setup_github(){
+ local repo=$ssh_repo
  local key=/etc/server-tools/credentials/github.key
  local hosts=/etc/server-tools/credentials/github_known_hosts
  local answer
@@ -69,19 +82,80 @@ setup_github(){
   [[ "$answer" != q && "$answer" != Q ]] || die "Installation paused; rerun after registering the key"
  done
 }
+choose_auth(){
+ local answer
+ if [[ -e "$auth_file" ]]; then
+  read_auth || die "Invalid GitHub authentication configuration"
+  return
+ fi
+ if timeout 30 git -c credential.helper= ls-remote --exit-code "$https_repo" refs/heads/main >/dev/null 2>&1; then
+  echo "Public HTTPS access available." >&2
+  echo "[1] HTTPS (public, no credentials) [2] SSH (deploy key)" >&2
+  if [[ -t 0 ]]; then
+   read -r -p "Select [1]: " answer </dev/tty
+  else
+   answer=1
+  fi
+  case "$answer" in ""|1) echo https;; 2) echo ssh;; *) die "Invalid selection";; esac
+ else
+  echo "Anonymous HTTPS unavailable (private repository or network failure)." >&2
+  if ! read -r -p "Configure SSH? [y/N] " answer </dev/tty; then die "Use an interactive terminal"; fi
+  case "$answer" in y|Y|yes) echo ssh;; *) die "Installation paused";; esac
+ fi
+}
+verify_auth(){
+ case "$1" in
+  ssh) setup_github ;;
+  https) timeout 30 git -c credential.helper= ls-remote --exit-code "$https_repo" refs/heads/main >/dev/null || die "Anonymous HTTPS access failed" ;;
+  *) die "Expected https or ssh" ;;
+ esac
+}
+save_auth(){
+ local tmp
+ tmp=$(mktemp /etc/server-tools/config/.github.conf.XXXXXX)
+ printf '%s\n' '# Authentication method: https (public) or ssh (public/private).' "AUTH_METHOD=$1" > "$tmp"
+ chmod 644 "$tmp"
+ mv -T -- "$tmp" "$auth_file"
+}
+change_auth(){
+ require_root
+ local mode="${1:-}" old remote
+ case "$mode" in https|ssh) ;; *) die "Usage: $0 auth {https|ssh}";; esac
+ [[ -d "$target/.git" && ! -L "$target" && ! -L "$target/.git" && $(stat -c %u:%g "$target") == 0:0 ]] || die "Unsafe or missing checkout"
+ old=$(read_auth) || die "Invalid current authentication configuration"
+ remote=$(git -C "$target" remote get-url origin)
+ [[ "$remote" == "$(repo_for "$old")" ]] || die "Unexpected remote"
+ verify_auth "$mode"
+ install -d -o root -g root -m 755 /run/server-tools /run/server-tools/locks
+ (
+  flock -n -x 9 || die "Launcher busy; retry"
+  flock -n -x 8 || die "Repository busy; retry"
+  git -C "$target" remote set-url origin "$(repo_for "$mode")"
+  if ! save_auth "$mode"; then
+   git -C "$target" remote set-url origin "$remote"
+   die "Could not save authentication configuration"
+  fi
+ ) 9>/run/server-tools/locks/launcher.lock 8<>/run/server-tools/locks/repository.lock
+ echo "Authentication changed to $mode. Existing SSH keys are preserved."
+ "$launcher" --sync-now
+}
 install_all(){
+ local mode repo
  require_root
  [[ ! -L /opt && ! -L "$target" ]] || die "Unsafe checkout path"
  install_base
  setup_account
  setup_dirs
- setup_github
+ mode=$(choose_auth)
+ verify_auth "$mode"
+ repo=$(repo_for "$mode")
  if [[ ! -d "$target/.git" ]]; then
   [[ ! -e "$target" || ( -d "$target" && -z $(ls -A "$target") ) ]] || die "Target not empty"
   git clone --branch main --single-branch "$repo" "$target"
  fi
  [[ $(stat -c %u:%g "$target") == 0:0 && ! -L "$target/.git" ]] || die "Unsafe repository owner"
  [[ $(git -C "$target" remote get-url origin) == "$repo" ]] || die "Unexpected remote"
+ save_auth "$mode"
  if [[ ! -e "$launcher" ]]; then
   install -o root -g root -m 755 "$target/bootstrap/server-tools-launcher.sh" "$launcher"
  fi
@@ -94,8 +168,9 @@ install_all(){
 }
 case "${1:-help}" in
  install|auto) install_all ;;
+ auth) change_auth "${2:-}" ;;
  sync) require_root; "$launcher" --sync-now ;;
  status) git -c safe.directory="$target" -C "$target" status --short --branch; git -C "$target" -c safe.directory="$target" log -1 --oneline ;;
- help|-h|--help) echo "Usage: $0 {install|auto|sync|status|help}" ;;
+ help|-h|--help) echo "Usage: $0 {install|auto|sync|status|help|auth https|auth ssh}" ;;
  *) die "Unknown action" ;;
 esac

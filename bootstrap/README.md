@@ -2,18 +2,7 @@
 
 ## Erstinstallation (Debian, Raspberry Pi OS, Proxmox/LXC)
 
-1. Bei GitHub anmelden und [manage-server-tools.sh](https://github.com/Sorcanius/server-tools/blob/main/bootstrap/manage-server-tools.sh) herunterladen (Raw-Datei).
-2. Die Datei beispielsweise per SCP nach /tmp/manage-server-tools.sh auf das Zielgerät übertragen.
-3. Als root ausführen:
-
-```bash
-bash /tmp/manage-server-tools.sh install
-```
-
-4. Falls der GitHub-Zugriff noch nicht eingerichtet ist, zeigt der Installer den öffentlichen SSH-Schlüssel an. Diesen unter [Settings → Deploy keys](https://github.com/Sorcanius/server-tools/settings/keys) hinzufügen. Als Titel den Gerätenamen verwenden. **Allow write access nicht aktivieren.**
-5. Im Terminal Enter drücken. Der Installer prüft den Zugriff und setzt die Installation fort.
-
-Bei einem öffentlichen Repository ist alternativ ein direkter Download möglich:
+Bei einem öffentlichen Repository als root ausführen:
 
 ```bash
 apt-get update && apt-get install -y curl ca-certificates
@@ -21,9 +10,22 @@ curl -fsSL https://raw.githubusercontent.com/Sorcanius/server-tools/main/bootstr
 bash /tmp/manage-server-tools.sh install
 ```
 
-Auch bei öffentlichen Repositories erfolgt der anschließende Git-Zugriff ausschließlich per SSH mit Deploy Key. Public/Private kann daher ohne Client-Änderung gewechselt werden.
+Bei einem privaten Repository [manage-server-tools.sh](https://github.com/Sorcanius/server-tools/blob/main/bootstrap/manage-server-tools.sh) im angemeldeten Browser als Raw-Datei herunterladen, auf das Zielgerät nach /tmp/manage-server-tools.sh übertragen und als root mit dem letzten Befehl starten.
 
-Der private Schlüssel liegt unter /etc/server-tools/credentials/github.key (root:root, 600). Nur github.key.pub an GitHub übertragen. Der Hostschlüssel wird aus der offiziellen GitHub-Dokumentation fest hinterlegt; unbekannte oder geänderte Hostschlüssel werden nicht automatisch akzeptiert. Bei einer legitimen Hostschlüsselrotation muss github_known_hosts nach Prüfung lokal aktualisiert werden.
+Der Installer prüft anonymen HTTPS-Zugriff. Ist er möglich, stehen HTTPS (Standard, ohne Credentials) und SSH zur Auswahl. Andernfalls kann SSH eingerichtet werden; ein fehlgeschlagener HTTPS-Test beweist nicht, dass das Repository privat ist.
+
+Für SSH den angezeigten öffentlichen Schlüssel unter [Settings → Deploy keys](https://github.com/Sorcanius/server-tools/settings/keys) hinzufügen, Gerätenamen als Titel verwenden, **Allow write access deaktiviert lassen** und im Terminal Enter drücken.
+
+Der Modus steht lokal unter /etc/server-tools/config/github.conf. Ein Wechsel erfolgt ausschließlich ausdrücklich:
+
+```bash
+sudo /opt/server-tools/bootstrap/manage-server-tools.sh auth ssh
+sudo /opt/server-tools/bootstrap/manage-server-tools.sh auth https
+```
+
+SSH funktioniert für Public und Private. HTTPS funktioniert nur bei anonym erreichbarem Repository. Bei einem Wechsel zu Private müssen HTTPS-Clients vorher auf SSH umgestellt werden. Es gibt keinen automatischen Fallback bei Authentifizierungsfehlern.
+
+Der private Schlüssel liegt unter /etc/server-tools/credentials/github.key (root:root, 600). Nur github.key.pub an GitHub übertragen. Der GitHub-Hostschlüssel wird fest hinterlegt; unbekannte oder geänderte Hostschlüssel werden nicht akzeptiert. Bei legitimer Rotation muss github_known_hosts nach Prüfung lokal aktualisiert werden.
 
 Die Installation richtet Grundpakete, Systembenutzer, Verzeichnisse, Checkout, Launcher und Cron ein.
 
