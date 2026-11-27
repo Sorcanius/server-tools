@@ -44,10 +44,10 @@ setup_account(){
  die "No free UID/GID from 621 to 999"
 }
 setup_dirs(){
- install -d -o root -g root -m 755 /etc/server-tools /etc/server-tools/config /etc/server-tools/scheduler /var/lib/server-tools /var/log/server-tools /run/server-tools
+ install -d -o root -g root -m 755 /etc/server-tools /var/lib/server-tools /var/log/server-tools /run/server-tools
+ install -d -o root -g root -m 700 /etc/server-tools/config /etc/server-tools/scheduler /var/lib/server-tools/bootstrap /var/log/server-tools/jobs
  install -d -o root -g "$account" -m 750 /etc/server-tools/credentials
- install -d -o root -g root -m 755 /var/lib/server-tools/bootstrap
- install -d -o "$account" -g "$account" -m 750 /var/lib/server-tools/mqtt /var/log/server-tools/jobs
+ install -d -o "$account" -g "$account" -m 750 /var/lib/server-tools/mqtt
 }
 setup_github(){
  local repo=$ssh_repo
