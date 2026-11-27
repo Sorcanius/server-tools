@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-umask 022
-export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+umask 077
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+unset BASH_ENV ENV CDPATH
+cd /
 
 [[ $EUID == 0 ]] || { echo "server-tools job-runner: root required" >&2; exit 1; }
 
@@ -10,17 +12,26 @@ script="${2:?script required}"
 run_user="${3:-server-tools}"
 timeout_seconds="${4:-0}"
 
-[[ "$job_id" =~ ^[a-zA-Z0-9._-]+$ ]] || { echo "invalid job id" >&2; exit 2; }
-[[ "$timeout_seconds" =~ ^[0-9]+$ ]] || { echo "invalid timeout" >&2; exit 2; }
-[[ -f "$script" && ! -L "$script" ]] || { echo "job script unavailable: $script" >&2; exit 2; }
+[[ "$job_id" =~ ^[a-zA-Z0-9][a-zA-Z0-9._-]*$ ]] || { echo "invalid job id" >&2; exit 2; }
+[[ "$timeout_seconds" =~ ^(0|[1-9][0-9]{0,6})$ ]] || { echo "invalid timeout" >&2; exit 2; }
+[[ "$script" == /opt/server-tools/* && -f "$script" && ! -L "$script" && $(realpath -e -- "$script") == "$script" ]] || { echo "job script unavailable: $script" >&2; exit 2; }
 id "$run_user" >/dev/null 2>&1 || { echo "job user missing: $run_user" >&2; exit 2; }
 
 runtime=/run/server-tools/locks
 logdir=/var/log/server-tools/jobs
-install -d -o root -g root -m 755 "$runtime" "$logdir"
+install -d -o root -g root -m 700 "$runtime" "$logdir"
 logfile="$logdir/$job_id.log"
 lockfile="$runtime/job-$job_id.lock"
 
+exec 8<>/run/server-tools/locks/repository.lock
+flock -s 8
+p="$script"
+while [[ "$p" != / ]]; do
+    [[ ! -L "$p" && $(stat -c %u -- "$p") == 0 ]] || exit 2
+    m=$(stat -c %a -- "$p")
+    (( (8#$m & 0022) == 0 )) || exit 2
+    p=$(dirname -- "$p")
+done
 exec 9>"$lockfile"
 if ! flock -n 9; then
     printf '%s job=%s status=skipped reason=already-running\n' "$(date --iso-8601=seconds)" "$job_id" >> "$logfile"
