@@ -29,7 +29,7 @@ stamp=$(date '+%Y-%m-%d_%H-%M-%S')
 install -d -o root -g root -m 700 "$backup_root/$stamp"
 for unit in zomboid.service zomboid.socket; do
     if [[ -f "/etc/systemd/system/$unit" ]]; then\n        install -o root -g root -m 600 "/etc/systemd/system/$unit" "$backup_root/$stamp/$unit"\n    fi
-    install -o root -g root -m 644 "$src/$unit" "/etc/systemd/system/$unit"
+    install -o root -g root -m 600 "$src/$unit" "/etc/systemd/system/$unit"
 done
 install -d -o steam -g steam -m 750 "$state"
 systemctl daemon-reload
