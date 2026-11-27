@@ -50,7 +50,7 @@ tail -n 50 /var/log/server-tools/launcher.log
 
 GitHub main ist die alleinige Source of Truth für /opt/server-tools. Lokale Änderungen und unversionierte Dateien (auch ignorierte Dateien und verschachtelte unversionierte Git-Repositories) werden beim Sync verworfen. Niemals lokale Daten im Checkout speichern.
 
-Root besitzt den Code, normale Benutzer dürfen lesen und ausführbare Dateien starten. Git verwaltet das Executable-Bit. Der Systembenutzer server-tools erhält bevorzugt UID/GID 621, sonst das nächste freie Paar bis 999, ohne Login.
+Root besitzt den Checkout. Zugriff auf ausführbaren Code wird lokal nach Least-Privilege vergeben: privilegierte Dateien ausschließlich an root, nicht privilegierte Framework-Dateien gezielt an die Gruppe server-tools und anwendungsspezifische Dateien nur an das jeweilige Servicekonto. Git liefert den Code; bootstrap/apply-permissions.sh erzwingt nach jedem Sync die effektiven lokalen Besitzer und Modi. Der Systembenutzer server-tools erhält bevorzugt UID/GID 621, sonst das nächste freie Paar bis 999, ohne Login.
 
 - bootstrap/: Installation und Verwaltung
 - scheduler/: zentrale Jobsteuerung und Zeitpläne
@@ -112,7 +112,7 @@ server-tools verwendet Least Privilege:
 - Gemeinsame Bibliotheken und MQTT-Credentials können gezielt für den Systembenutzer server-tools freigegeben werden; MQTT-Credentials standardmäßig root:server-tools 640.
 - Nicht privilegierte Framework-Komponenten sollen grundsätzlich als server-tools laufen.
 - Anwendungsdienste mit eigenem Servicekonto behalten dieses Konto. Project Zomboid läuft deshalb weiterhin als steam; nur die dafür erforderlichen Start-/Konfigurationsdateien werden root:steam 750/640 freigegeben.
-- Die Rechte werden zentral durch bootstrap/apply-permissions.sh nach dem Sync erneut durchgesetzt.
+- Die Rechte werden zentral durch bootstrap/apply-permissions.sh nach dem Sync erneut durchgesetzt. Die .git-Metadaten des lokalen Checkouts sind root-only.
 
 ## Scheduler-Grundsätze
 
