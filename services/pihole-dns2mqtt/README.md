@@ -11,7 +11,7 @@
 ## Credentials
 
 ```text
-/etc/mqtt.env
+/etc/server-tools/credentials/mqtt.env
 ```
 
 Die Credential-Datei wird mit `/opt/server-tools/bootstrap/setup-mqtt-env.sh` angelegt.
