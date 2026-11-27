@@ -22,7 +22,8 @@ die(){ echo "server-tools: $*" >&2; exit 1; }
 [[ $EUID == 0 ]] || die "Root required"
 
 [[ ! -L /opt && ! -L "$target" ]] || die "Unsafe checkout path"
-install -d -m 755 -o root -g root "$runtime" "$runtime/locks" "$state"
+install -d -m 755 -o root -g root "$runtime"
+install -d -m 700 -o root -g root "$runtime/locks" "$state"
 exec 9>"$runtime/locks/launcher.lock"
 flock -n 9 || exit 0
 mode=$(read_auth) || die "Invalid GitHub authentication configuration"
