@@ -37,7 +37,6 @@ root_exec=(
     "$repo/projects/project-zomboid/tools/install-systemd.sh"
     "$repo/projects/project-zomboid/tools/shutdown.sh"
     "$repo/tools/pi-usb-disk-check/pi-usb-disk-check.sh"
-    "$repo/services/pihole-dns2mqtt/pihole-dns2mqtt.sh"
 )
 for path in "${root_exec[@]}"; do set_root_file 700 "$path"; done
 
@@ -54,6 +53,7 @@ for path in "${root_read[@]}"; do set_root_file 600 "$path"; done
 # Shared framework libraries/helpers: root owns them; server-tools may read/execute.
 set_group_file 640 "$account" "$repo/lib/mqtt.sh"
 set_group_file 750 "$account" "$repo/lib/send2mqtt-legacy.sh"
+set_group_file 750 "$account" "$repo/services/pihole-dns2mqtt/pihole-dns2mqtt.sh"
 
 # Project Zomboid service files are executed/read by the dedicated steam account.
 # They are not assigned to server-tools because the game service deliberately
