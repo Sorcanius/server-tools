@@ -23,7 +23,7 @@ set -o pipefail
 SCRIPT_NAME="$(basename "$0")"
 TOTAL_STEPS=10
 MODE="auto"                         # auto | force | never
-MQTT_SENDER="${MQTT_SENDER:-/opt/send2mqtt.sh}"
+MQTT_SENDER="${MQTT_SENDER:-/opt/server-tools/lib/send2mqtt-legacy.sh}"
 SMART_POLL_SECONDS="${SMART_POLL_SECONDS:-60}"
 PROGRESS_INTERVAL_SECONDS="${PROGRESS_INTERVAL_SECONDS:-3600}"
 DISCONNECT_GRACE_SECONDS="${DISCONNECT_GRACE_SECONDS:-300}"
@@ -46,7 +46,7 @@ Usage:
       SMART-only mode. Never overwrites a disk.
 
 Optional environment variables:
-  MQTT_SENDER=/opt/send2mqtt.sh
+  MQTT_SENDER=/opt/server-tools/lib/send2mqtt-legacy.sh
   SMART_POLL_SECONDS=60
   PROGRESS_INTERVAL_SECONDS=3600
   DISCONNECT_GRACE_SECONDS=300
