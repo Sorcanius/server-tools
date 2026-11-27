@@ -7,8 +7,12 @@ source "$PZ_CONFIG"
 
 pz_send_console() {
     local command=${1:?command required}
-    [[ -p "$PZ_CONTROL_FIFO" || -e "$PZ_CONTROL_FIFO" ]] || { echo "project-zomboid: control FIFO missing: $PZ_CONTROL_FIFO" >&2; return 1; }
-    printf '%s\n' "$command" > "$PZ_CONTROL_FIFO"
+    [[ -p "$PZ_CONTROL_FIFO" && ! -L "$PZ_CONTROL_FIFO" ]] || { echo "project-zomboid: control FIFO missing: $PZ_CONTROL_FIFO" >&2; return 1; }
+    if (( EUID == 0 )); then
+        /usr/sbin/runuser -u steam -- /usr/bin/timeout 10 /usr/bin/bash -c '[[ -p "$1" && ! -L "$1" ]] || exit 1; printf "%s\\n" "$2" > "$1"' _ "$PZ_CONTROL_FIFO" "$command"
+    else
+        printf '%s\n' "$command" > "$PZ_CONTROL_FIFO"
+    fi
 }
 
 pz_countdown_5m() {

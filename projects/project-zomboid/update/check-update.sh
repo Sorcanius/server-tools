@@ -27,13 +27,12 @@ if [[ ! "$online" =~ ^[0-9]+$ ]]; then
 fi
 
 state_file="$PZ_STATE_DIR/server-manifest"
-installed=$(cat "$state_file" 2>/dev/null || true)
+installed=$(/usr/sbin/runuser -u steam -- /usr/bin/timeout 5 /usr/bin/head -c 64 -- "$state_file" 2>/dev/null || true)
 server_update=false
 if [[ "$installed" =~ ^[0-9]+$ ]]; then
     [[ "$installed" == "$online" ]] || server_update=true
 else
-    printf '%s\n' "$online" > "$state_file"
-    chown steam:steam "$state_file" 2>/dev/null || true
+    /usr/sbin/runuser -u steam -- /usr/bin/bash -c 'umask 077; t=$(mktemp "$1/.server-manifest.XXXXXX") || exit 1; printf "%s\\n" "$2" > "$t" && mv -T -- "$t" "$1/server-manifest"' _ "$PZ_STATE_DIR" "$online"
     installed=$online
 fi
 

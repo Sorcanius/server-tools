@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 umask 022
+cd /
+unset BASH_ENV ENV CDPATH GIT_DIR GIT_WORK_TREE GIT_CONFIG GIT_CONFIG_COUNT GIT_CONFIG_PARAMETERS GIT_CONFIG_SYSTEM GIT_SSL_NO_VERIFY GIT_SSL_CAINFO GIT_SSL_CAPATH GIT_PROXY_COMMAND GIT_SSH GIT_SSH_VARIANT
+export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null
+export GIT_CONFIG_COUNT=3 GIT_CONFIG_KEY_0=http.sslVerify GIT_CONFIG_VALUE_0=true GIT_CONFIG_KEY_1=http.followRedirects GIT_CONFIG_VALUE_1=false GIT_CONFIG_KEY_2=core.hooksPath GIT_CONFIG_VALUE_2=/dev/null
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin
 export GIT_SSH_COMMAND='/usr/bin/ssh -F /dev/null -i /etc/server-tools/credentials/github.key -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/etc/server-tools/credentials/github_known_hosts -o GlobalKnownHostsFile=/dev/null -o HostKeyAlgorithms=ssh-ed25519 -o ConnectTimeout=15'
 export GIT_TERMINAL_PROMPT=0
@@ -20,6 +24,28 @@ repo_for(){
 readonly account=server-tools launcher=/usr/local/sbin/server-tools-launcher
 die(){ echo "server-tools: $*" >&2; exit 1; }
 require_root(){ [[ $EUID == 0 ]] || die "Root required"; }
+safe_path(){
+ local p=$1 m
+ while [[ "$p" != / ]]; do
+  [[ -e "$p" && ! -L "$p" && $(stat -c %u -- "$p") == 0 ]] || die "Unsafe path: $p"
+  m=$(stat -c %a -- "$p")
+  (( (8#$m & 0022) == 0 )) || die "Non-root writable path: $p"
+  p=$(dirname -- "$p")
+ done
+}
+safe_checkout(){
+ local bad
+ safe_path "$target"
+ bad=$(find "$target" \( -type l -o ! -user root -o -perm /022 -o \( ! -type f ! -type d \) \) -print -quit) || die "Checkout inspection failed"
+ [[ -z "$bad" ]] || die "Unsafe checkout entry: $bad"
+}
+check_local(){
+ for p in /opt /etc /var /var/lib /var/log /run /usr/local/sbin; do safe_path "$p"; done
+ for p in /etc/server-tools /etc/server-tools/config /etc/server-tools/credentials /var/lib/server-tools /var/log/server-tools /run/server-tools /run/server-tools/locks "$launcher"; do
+  [[ ! -e "$p" && ! -L "$p" ]] || safe_path "$p"
+ done
+ if [[ -e "$target" || -L "$target" ]]; then safe_checkout; fi
+}
 install_base(){
  local p missing=()
  for p in git curl jq mosquitto-clients cron util-linux ca-certificates openssh-client; do
@@ -119,6 +145,7 @@ save_auth(){
 }
 change_auth(){
  require_root
+ check_local
  local mode="${1:-}" old remote
  case "$mode" in https|ssh) ;; *) die "Usage: $0 auth {https|ssh}";; esac
  [[ -d "$target/.git" && ! -L "$target" && ! -L "$target/.git" && $(stat -c %u:%g "$target") == 0:0 ]] || die "Unsafe or missing checkout"
@@ -142,6 +169,7 @@ change_auth(){
 }
 update_launcher(){
  require_root
+ check_local
  [[ -f "$target/bootstrap/server-tools-launcher.sh" && ! -L "$target/bootstrap/server-tools-launcher.sh" ]] || die "Launcher source unavailable"
  install -d -o root -g root -m 755 /run/server-tools
  install -d -o root -g root -m 700 /run/server-tools/locks
@@ -157,6 +185,7 @@ update_launcher(){
 install_all(){
  local mode repo
  require_root
+ check_local
  [[ ! -L /opt && ! -L "$target" ]] || die "Unsafe checkout path"
  install_base
  setup_account
