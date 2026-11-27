@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-umask 022
+umask 077
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
 [[ $EUID == 0 ]] || { echo "Root required" >&2; exit 1; }
 
 repo=/opt/server-tools
@@ -31,7 +32,7 @@ if [[ ! -e "$groups" ]]; then
 fi
 
 while IFS= read -r group; do
-    [[ -n "$group" ]] || continue
+    [[ "$group" =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]*$ ]] || continue
     if ! grep -Eq "^[[:space:]]*${group}=" "$groups"; then
         printf '%s=disabled\n' "$group" >> "$groups"
     fi
