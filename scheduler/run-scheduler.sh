@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-umask 022
-export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+umask 077
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
 
 [[ $EUID == 0 ]] || { echo "server-tools scheduler: root required" >&2; exit 1; }
 
@@ -14,7 +14,7 @@ readonly runtime_dir=/run/server-tools/locks
 readonly job_runner="$repo/scheduler/run-job.sh"
 
 [[ -r "$jobs_file" && -x "$job_runner" ]] || exit 0
-install -d -o root -g root -m 755 "$state_dir" "$runtime_dir" /var/log/server-tools/jobs
+install -d -o root -g root -m 700 "$state_dir" "$runtime_dir" /var/log/server-tools/jobs
 
 bool_true() {
     case "${1,,}" in 1|true|yes|on|enabled) return 0 ;; *) return 1 ;; esac
@@ -125,7 +125,7 @@ last=$(cat "$last_file" 2>/dev/null || echo $((now_min-60)))
 
 while IFS='|' read -r job group schedule delay timeout_s run_user script; do
     [[ -n "$job" && "${job:0:1}" != "#" ]] || continue
-    [[ "$job" =~ ^[a-zA-Z0-9._-]+$ ]] || continue
+    [[ "$job" =~ ^[a-zA-Z0-9][a-zA-Z0-9._-]*$ ]] || continue
     group_enabled "$group" || continue
 
     ov=$(override_value "$job" enabled 2>/dev/null || true)
@@ -135,8 +135,8 @@ while IFS='|' read -r job group schedule delay timeout_s run_user script; do
     ov=$(override_value "$job" timeout 2>/dev/null || true); [[ -z "$ov" ]] || timeout_s=$ov
     ov=$(override_value "$job" user 2>/dev/null || true); [[ -z "$ov" ]] || run_user=$ov
 
-    [[ "$delay" =~ ^[0-9]+$ && "$timeout_s" =~ ^[0-9]+$ ]] || continue
-    [[ "$script" == /opt/server-tools/* && -f "$script" && ! -L "$script" ]] || continue
+    [[ "$delay" =~ ^(0|[1-9][0-9]{0,5})$ && "$timeout_s" =~ ^(0|[1-9][0-9]{0,6})$ ]] || continue
+    [[ "$script" == /opt/server-tools/* && -f "$script" && ! -L "$script" && $(realpath -e -- "$script") == "$script" ]] || continue
     id "$run_user" >/dev/null 2>&1 || continue
 
     job_state="$state_dir/jobs/$job"
