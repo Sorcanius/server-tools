@@ -4,6 +4,7 @@ umask 022
 [[ $EUID == 0 ]] || { echo "Root required" >&2; exit 1; }
 
 repo=/opt/server-tools
+"$repo/bootstrap/apply-permissions.sh"
 missing=()
 while IFS= read -r p; do
     [[ $p =~ ^[a-z0-9][a-z0-9.+-]*$ ]] || continue
