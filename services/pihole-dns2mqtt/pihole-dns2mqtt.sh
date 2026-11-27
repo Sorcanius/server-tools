@@ -81,12 +81,11 @@ if [[ ! -r "$PIHOLE_LOG" ]]; then
     exit 1
 fi
 
-# Refuse obviously unsafe credential-file permissions. 600 is what the setup
-# helper creates; 400 is also acceptable.
+# Warn on unexpected credential-file permissions. The central setup uses 640 root:server-tools.
 if command -v stat >/dev/null 2>&1; then
     mode="$(stat -c '%a' "$CONFIG_FILE" 2>/dev/null || true)"
     case "$mode" in
-        400|600) ;;
+        400|600|640) ;;
         *)
             echo "WARNING: $CONFIG_FILE has mode ${mode:-unknown}; recommended: 640 root:server-tools (or stricter)." >&2
             ;;
