@@ -2,15 +2,7 @@
 
 ## Erstinstallation (Debian, Raspberry Pi OS, Proxmox/LXC)
 
-Bei einem öffentlichen Repository als root ausführen:
-
-```bash
-apt-get update && apt-get install -y curl ca-certificates
-curl -fsSL https://raw.githubusercontent.com/Sorcanius/server-tools/main/bootstrap/manage-server-tools.sh -o /tmp/manage-server-tools.sh
-bash /tmp/manage-server-tools.sh install
-```
-
-Bei einem privaten Repository [manage-server-tools.sh](https://github.com/Sorcanius/server-tools/blob/main/bootstrap/manage-server-tools.sh) im angemeldeten Browser als Raw-Datei herunterladen, auf das Zielgerät nach /tmp/manage-server-tools.sh übertragen und als root mit dem letzten Befehl starten.
+**Signed-update branch:** Erst den lokal vertrauenswürdigen Launcher und den öffentlichen Signaturschlüssel über einen authentifizierten Administrationskanal bereitstellen. Siehe [SECURITY.md](../SECURITY.md). Keine ungeprüften Downloads als Root starten.
 
 Der Installer prüft anonymen HTTPS-Zugriff. Ist er möglich, stehen HTTPS (Standard, ohne Credentials) und SSH zur Auswahl. Andernfalls kann SSH eingerichtet werden; ein fehlgeschlagener HTTPS-Test beweist nicht, dass das Repository privat ist.
 
@@ -40,7 +32,6 @@ Status und manueller Sync:
 ```bash
 bash /opt/server-tools/bootstrap/manage-server-tools.sh status
 bash /opt/server-tools/bootstrap/manage-server-tools.sh sync
-bash /opt/server-tools/bootstrap/manage-server-tools.sh launcher-update
 cat /etc/cron.d/server-tools
 tail -n 50 /var/log/server-tools/launcher.log
 ```
@@ -53,4 +44,4 @@ tail -n 50 /var/log/server-tools/launcher.log
 - setup-mqtt-env.sh: legt fehlende MQTT-Credentials an, ohne bestehende zu überschreiben.
 - apply-permissions.sh: setzt und verifiziert nach jedem Sync die lokalen Least-Privilege-Dateirechte.
 
-Der Launcher wird nicht automatisch selbst aktualisiert. Nach einer Änderung des versionierten Launchers erfolgt die bewusste Aktualisierung mit `manage-server-tools.sh launcher-update`. Der Dispatcher ergänzt fehlende Scheduler-Gruppen lokal deaktiviert, pflegt fehlende MQTT-Konfigurationsschlüssel nach, erzwingt die Berechtigungsrichtlinie und ruft den zentralen Scheduler auf. Logrotation und weitergehender Vorlagenabgleich bleiben noch offen.
+Der Launcher wird nicht automatisch selbst aktualisiert. Eine Launcher-Aktualisierung erfordert eine unabhängig geprüfte manuelle Installation gemäß SECURITY.md. Der Dispatcher ergänzt fehlende Scheduler-Gruppen lokal deaktiviert, pflegt fehlende MQTT-Konfigurationsschlüssel nach, erzwingt die Berechtigungsrichtlinie und ruft den zentralen Scheduler auf. Logrotation und weitergehender Vorlagenabgleich bleiben noch offen.
