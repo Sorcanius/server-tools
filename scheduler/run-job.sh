@@ -7,7 +7,7 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 job_id="${1:?job id required}"
 script="${2:?script required}"
-run_user="${3:-root}"
+run_user="${3:-server-tools}"
 timeout_seconds="${4:-0}"
 
 [[ "$job_id" =~ ^[a-zA-Z0-9._-]+$ ]] || { echo "invalid job id" >&2; exit 2; }
