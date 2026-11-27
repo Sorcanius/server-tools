@@ -1,5 +1,7 @@
 # services
 
-Dauerhaft laufende Komponenten, typischerweise über systemd betrieben.
+Generische dauerhaft laufende Komponenten.
 
-Jede Komponente liegt in einem eigenen Unterordner und enthält ihre Dokumentation sowie bei Bedarf Service-/Setup-Dateien.
+Dauerhafte Prozesse werden weiterhin von systemd betrieben. server-tools kann Unit-Dateien versionieren, installieren und kontrollierte Start-/Stop-/Restart-Aktionen auslösen, ersetzt systemd jedoch nicht.
+
+Projektbezogene Services und ihre Unit-Dateien bleiben möglichst im jeweiligen Projekt unter `projects/<projekt>/systemd/`.
