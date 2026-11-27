@@ -41,7 +41,7 @@ if [[ ! -e "$local_jobs" ]]; then
         echo '# Optional local job overrides. See /opt/server-tools/config/jobs.local.conf.example'
         echo '# Leave empty to use central defaults.'
     } > "$local_jobs"
-    chmod 644 "$local_jobs"
 fi
 
+"$repo/bootstrap/apply-permissions.sh"
 "$repo/scheduler/run-scheduler.sh"
