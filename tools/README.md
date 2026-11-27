@@ -1,5 +1,15 @@
 # tools
 
-Manuell gestartete administrative Werkzeuge.
+Manuell gestartete, generische administrative Werkzeuge.
 
-Jedes eigenständige Tool kann einen eigenen Unterordner mit README, Script und zugehörigen Hilfsdateien erhalten.
+Ein Tool gehört hierher, wenn es unabhängig von einem bestimmten Projekt auf verschiedenen Systemen sinnvoll eingesetzt werden kann.
+
+Beispiel:
+
+- `pi-usb-disk-check/`
+
+Projektbezogene Werkzeuge liegen stattdessen unter:
+
+```text
+projects/<projekt>/tools/
+```
