@@ -22,6 +22,7 @@ repo_for(){
 readonly state=/var/lib/server-tools/bootstrap runtime=/run/server-tools
 die(){ echo "server-tools: $*" >&2; exit 1; }
 [[ $EUID == 0 ]] || die "Root required"
+cd /
 
 readonly signers=/etc/server-tools/config/allowed-signers
 safe_path(){
@@ -52,8 +53,10 @@ verify_active(){
  safe_tree "$target"
  verify_revision "$target" HEAD || die "Active commit not signed by trusted key"
  [[ $(git_safe -C "$target" rev-parse HEAD) == "$(cat "$state/accepted-commit")" ]] || die "Active commit differs from accepted revision"
- git_safe -C "$target" diff --quiet HEAD -- || die "Modified tracked files"
- [[ -z $(git_safe -C "$target" ls-files --others) ]] || die "Untracked files"
+ git_safe -C "$target" diff --no-ext-diff --quiet HEAD -- || die "Modified tracked files"
+ local untracked
+ untracked=$(git_safe -C "$target" ls-files --others) || die "Cannot inspect untracked files"
+ [[ -z "$untracked" ]] || die "Untracked files"
 }
 safe_path /opt
 safe_path /etc/server-tools/config
@@ -69,11 +72,11 @@ for p in "$runtime/locks" "$state"; do
  [[ ! -e "$p" && ! -L "$p" ]] || safe_path "$p"
 done
 install -d -m 700 -o root -g root "$runtime/locks" "$state"
-exec 9>"$runtime/locks/launcher.lock"
-flock -n 9 || exit 0
 for p in "$runtime/locks/launcher.lock" "$runtime/locks/repository.lock" "$state/last-success" "$state/last-attempt" "$state/accepted-commit"; do
  [[ ! -e "$p" && ! -L "$p" ]] || safe_path "$p"
 done
+exec 9>"$runtime/locks/launcher.lock"
+flock -n 9 || exit 0
 mode=$(read_auth) || die "Invalid GitHub authentication configuration"
 repo=$(repo_for "$mode")
 if [[ "$mode" == ssh ]]; then
@@ -113,10 +116,11 @@ sync_repo(){
   if ! git_safe -C "$stage" merge-base --is-ancestor "$previous" "$candidate"; then rm -rf -- "$stage"; return 1; fi
  fi
  if ! git_safe -C "$stage" checkout --detach "$candidate"; then rm -rf -- "$stage"; return 1; fi
+ find "$stage" -path "$stage/.git" -prune -o -type d -exec chmod 755 {} + || return 1
  safe_tree "$stage"
  chmod 755 "$stage"
  # All readers must honor the repository lock. Interrupted activation fails closed.
- if [[ -e "$target" ]]; then
+ if [[ -e "$target" || -L "$target" ]]; then
   safe_tree "$target"
   [[ ! -e "$target.previous" && ! -L "$target.previous" ]] || return 1
   mv -T -- "$target" "$target.previous" || return 1
