@@ -30,6 +30,10 @@ Geprüft werden:
 2. Workshop-Modstatus über checkModsNeedUpdate.
 3. gemeinsamer Restartpfad bei Server- und/oder Modupdate.
 
+Für einen sicheren ersten Test ohne Countdown/Restart:
+
+sudo /opt/server-tools/projects/project-zomboid/update/check-update.sh --check-only
+
 Ein manuell gestoppter Dienst wird nicht automatisch gestartet.
 
 ## Test/Migration
