@@ -40,6 +40,7 @@ Status und manueller Sync:
 ```bash
 bash /opt/server-tools/bootstrap/manage-server-tools.sh status
 bash /opt/server-tools/bootstrap/manage-server-tools.sh sync
+bash /opt/server-tools/bootstrap/manage-server-tools.sh launcher-update
 cat /etc/cron.d/server-tools
 tail -n 50 /var/log/server-tools/launcher.log
 ```
@@ -50,5 +51,6 @@ tail -n 50 /var/log/server-tools/launcher.log
 - server-tools-launcher.sh: unabhängiger Starter, lokal installiert unter /usr/local/sbin/server-tools-launcher.
 - dispatch.sh: zentral aktualisierbarer Einstiegspunkt.
 - setup-mqtt-env.sh: legt fehlende MQTT-Credentials an, ohne bestehende zu überschreiben.
+- apply-permissions.sh: setzt und verifiziert nach jedem Sync die lokalen Least-Privilege-Dateirechte.
 
-Der Launcher wird nicht automatisch selbst aktualisiert. Der Dispatcher ergänzt fehlende Scheduler-Gruppen lokal deaktiviert, pflegt fehlende MQTT-Konfigurationsschlüssel nach und ruft den zentralen Scheduler auf. Logrotation und weitergehender Vorlagenabgleich bleiben noch offen.
+Der Launcher wird nicht automatisch selbst aktualisiert. Nach einer Änderung des versionierten Launchers erfolgt die bewusste Aktualisierung mit `manage-server-tools.sh launcher-update`. Der Dispatcher ergänzt fehlende Scheduler-Gruppen lokal deaktiviert, pflegt fehlende MQTT-Konfigurationsschlüssel nach, erzwingt die Berechtigungsrichtlinie und ruft den zentralen Scheduler auf. Logrotation und weitergehender Vorlagenabgleich bleiben noch offen.
