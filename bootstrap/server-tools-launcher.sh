@@ -44,6 +44,10 @@ git(){
 }
 safe_path /opt
 safe_path /usr/local/sbin/server-tools-launcher
+safe_path /run
+safe_path /var
+safe_path /var/lib
+safe_path /var/log
 safe_path "$auth_file"
 for p in /etc/server-tools /var/lib/server-tools /var/log/server-tools "$runtime"; do
  [[ ! -e "$p" && ! -L "$p" ]] || safe_path "$p"
@@ -120,6 +124,6 @@ safe_tree "$target"
 [[ "$(git -C "$target" remote get-url origin)" == "$repo" ]] || die "Unexpected remote"
 [[ -f "$target/bootstrap/dispatch.sh" && -f "$target/bootstrap/apply-permissions.sh" ]] || die "Dispatcher unavailable"
 chown root:root "$target/bootstrap/dispatch.sh" "$target/bootstrap/apply-permissions.sh"
-chmod 700 "$target/bootstrap/dispatch.sh" "$target/bootstrap/apply-permissions.sh"
+chmod 755 "$target/bootstrap/dispatch.sh" "$target/bootstrap/apply-permissions.sh"
 flock -n -s 8 || exit 0
 /usr/bin/bash "$target/bootstrap/dispatch.sh" 9>&- || die "Dispatcher failed"
