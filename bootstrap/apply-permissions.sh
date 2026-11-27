@@ -23,6 +23,12 @@ set_group_file() {
     chmod "$mode" "$path"
 }
 
+# Git metadata is needed only by the privileged launcher.
+if [[ -d "$repo/.git" && ! -L "$repo/.git" ]]; then
+    chown root:root "$repo/.git"
+    chmod 700 "$repo/.git"
+fi
+
 # Baseline for shell code: root owns repository code, while the dedicated
 # server-tools account may read/execute non-privileged framework scripts.
 # Privileged and service-specific paths are tightened/overridden below.
@@ -148,3 +154,6 @@ verify_file_mode root "$account" 640 /etc/server-tools/credentials/mqtt.env
 for dir in     /etc/server-tools/config     /etc/server-tools/scheduler     /var/lib/server-tools/bootstrap     /var/lib/server-tools/scheduler     /var/log/server-tools/jobs     /run/server-tools/locks; do
     verify_dir_mode root root 700 "$dir"
 done
+
+
+verify_dir_mode root root 700 "$repo/.git"
