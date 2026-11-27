@@ -58,7 +58,7 @@ set_group_file 750 "$account" "$repo/lib/send2mqtt-legacy.sh"
 # Project Zomboid service files are executed/read by the dedicated steam account.
 # They are not assigned to server-tools because the game service deliberately
 # runs as steam.
-if getent group steam >/dev/null 2>&1; then
+if id steam >/dev/null 2>&1 && getent group steam >/dev/null 2>&1; then
     set_group_file 640 steam "$repo/projects/project-zomboid/config.conf"
     set_group_file 640 steam "$repo/projects/project-zomboid/lib/common.sh"
     set_group_file 750 steam "$repo/projects/project-zomboid/service/start-server.sh"
