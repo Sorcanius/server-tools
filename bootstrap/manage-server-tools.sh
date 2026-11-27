@@ -157,12 +157,12 @@ install_all(){
  [[ $(git -C "$target" remote get-url origin) == "$repo" ]] || die "Unexpected remote"
  save_auth "$mode"
  if [[ ! -e "$launcher" ]]; then
-  install -o root -g root -m 755 "$target/bootstrap/server-tools-launcher.sh" "$launcher"
+  install -o root -g root -m 700 "$target/bootstrap/server-tools-launcher.sh" "$launcher"
  fi
  "$launcher" --sync-now
  install -d -m 755 /etc/cron.d
  printf '%s\n' '* * * * * root /usr/local/sbin/server-tools-launcher >> /var/log/server-tools/launcher.log 2>&1' > /etc/cron.d/server-tools
- chmod 644 /etc/cron.d/server-tools
+ chmod 600 /etc/cron.d/server-tools
  if command -v systemctl >/dev/null && [[ -d /run/systemd/system ]]; then systemctl enable --now cron; else service cron start; fi
  echo "Installation finished. Configure /etc/server-tools/credentials/mqtt.env"
 }
