@@ -10,14 +10,16 @@ id "$account" >/dev/null 2>&1 || { echo "server-tools permissions: account '$acc
 
 set_root_file() {
     local mode=$1 path=$2
-    [[ -e "$path" && ! -L "$path" ]] || return 0
+    [[ ! -L "$path" ]] || { echo "Unsafe symlink: $path" >&2; return 1; }
+    [[ -e "$path" ]] || return 0
     chown root:root "$path"
     chmod "$mode" "$path"
 }
 
 set_group_file() {
     local mode=$1 group=$2 path=$3
-    [[ -e "$path" && ! -L "$path" ]] || return 0
+    [[ ! -L "$path" ]] || { echo "Unsafe symlink: $path" >&2; return 1; }
+    [[ -e "$path" ]] || return 0
     getent group "$group" >/dev/null 2>&1 || return 0
     chown root:"$group" "$path"
     chmod "$mode" "$path"
@@ -54,7 +56,7 @@ root_exec=(
     "$repo/projects/project-zomboid/tools/shutdown.sh"
     "$repo/tools/pi-usb-disk-check/pi-usb-disk-check.sh"
 )
-for path in "${root_exec[@]}"; do set_root_file 700 "$path"; done
+for path in "${root_exec[@]}"; do set_root_file 755 "$path"; done
 
 # Root-only data/configuration consumed by privileged framework code.
 root_read=(
@@ -105,7 +107,8 @@ fi
 
 # Privileged framework configuration/state/logs are root-only.
 for dir in     /etc/server-tools/config     /etc/server-tools/scheduler     /var/lib/server-tools/bootstrap     /var/lib/server-tools/scheduler     /var/log/server-tools/jobs     /run/server-tools/locks; do
-    [[ -d "$dir" && ! -L "$dir" ]] || continue
+    [[ ! -L "$dir" ]] || { echo "Unsafe directory symlink: $dir" >&2; exit 1; }
+    [[ -d "$dir" ]] || continue
     chown root:root "$dir"
     chmod 700 "$dir"
 done
@@ -115,7 +118,8 @@ set_root_file 600 /var/log/server-tools/launcher.log
 
 verify_file_mode() {
     local expected_owner=$1 expected_group=$2 expected_mode=$3 path=$4 actual
-    [[ -e "$path" && ! -L "$path" ]] || return 0
+    [[ ! -L "$path" ]] || { echo "Unsafe symlink: $path" >&2; return 1; }
+    [[ -e "$path" ]] || return 0
     actual=$(stat -c '%U:%G:%a' "$path")
     if [[ "$actual" != "$expected_owner:$expected_group:$expected_mode" ]]; then
         echo "server-tools permissions: unexpected permissions on $path: $actual (expected $expected_owner:$expected_group:$expected_mode)" >&2
@@ -128,7 +132,7 @@ verify_dir_mode() {
 }
 
 # Fail closed if a privileged path was not tightened as intended.
-for path in "${root_exec[@]}"; do verify_file_mode root root 700 "$path"; done
+for path in "${root_exec[@]}"; do verify_file_mode root root 755 "$path"; done
 for path in "${root_read[@]}"; do verify_file_mode root root 600 "$path"; done
 verify_file_mode root "$account" 640 "$repo/lib/mqtt.sh"
 verify_file_mode root "$account" 750 "$repo/lib/send2mqtt-legacy.sh"
