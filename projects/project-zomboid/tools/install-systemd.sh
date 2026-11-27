@@ -26,9 +26,9 @@ if [[ "$mode" == --dry-run ]]; then
 fi
 
 stamp=$(date '+%Y-%m-%d_%H-%M-%S')
-install -d -o root -g root -m 755 "$backup_root/$stamp"
+install -d -o root -g root -m 700 "$backup_root/$stamp"
 for unit in zomboid.service zomboid.socket; do
-    [[ -f "/etc/systemd/system/$unit" ]] && cp -a "/etc/systemd/system/$unit" "$backup_root/$stamp/$unit"
+    if [[ -f "/etc/systemd/system/$unit" ]]; then\n        install -o root -g root -m 600 "/etc/systemd/system/$unit" "$backup_root/$stamp/$unit"\n    fi
     install -o root -g root -m 644 "$src/$unit" "/etc/systemd/system/$unit"
 done
 install -d -o steam -g steam -m 750 "$state"
