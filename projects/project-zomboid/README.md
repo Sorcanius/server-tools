@@ -1,47 +1,51 @@
 # project-zomboid
 
-Projektbezogene Verwaltung des Project-Zomboid-Servers.
+Zusammengehörige Verwaltungslogik für den Project-Zomboid-Server.
 
-## Zielstruktur
+## Struktur
 
-```text
-projects/project-zomboid/
-├── README.md
-├── systemd/
-├── update/
-└── tools/
-```
+- config.conf – zentrale, nicht geheime Projektpfade/-werte.
+- lib/common.sh – Control-FIFO, Countdown und Manifestabfrage.
+- service/start-server.sh – SteamCMD-Update/Validate und Gameserverstart.
+- service/steam-update.txt – SteamCMD-Runscript.
+- systemd/ – versionierte zomboid.service und zomboid.socket.
+- update/check-update.sh – kombinierter Server-/Modupdatecheck.
+- tools/fix-permissions.sh – manuelle Rechtekorrektur.
+- tools/shutdown.sh – manueller 5-Minuten-Shutdown.
+- tools/install-systemd.sh – Dry-Run/Installation der Unit-Dateien.
 
-## Bestehendes Betriebsmodell, das bei der Migration erhalten werden soll
+## Betrieb
 
-- Der eigentliche Gameserver läuft als Benutzer `steam`.
-- Start/Stop/Restart erfolgt über systemd.
-- server-tools darf Updates prüfen, Countdowns auslösen und systemd-Aktionen orchestrieren.
-- Beim Serverstart wird der Dedicated Server über SteamCMD aktualisiert/validiert, bevor der Gameserver startet.
-- Automatische Update-Restarts sollen nur im bisherigen Wartungsfenster stattfinden und nicht während der regulären Spielzeit.
-- Server- und Mod-Updates sollen in denselben kontrollierten Restartpfad einfließen.
-- Modupdates werden über den PZ-Konsolenbefehl `checkModsNeedUpdate` erkannt.
-- Der Kontroll-FIFO bleibt Teil der systemd-/Serverarchitektur.
-- Projektbezogene manuelle Werkzeuge bleiben im Projektordner.
+Der Gameserver läuft weiterhin als steam. systemd betreibt Start/Stop/Restart und den Control-FIFO. server-tools orchestriert Updateprüfung und kontrollierte Aktionen.
 
-## Lokale Daten
+Jeder normale Serverstart führt zuerst SteamCMD app_update 380870 validate aus. Danach wird der aktuelle Online-Manifeststand unter /var/lib/server-tools/projects/project-zomboid/server-manifest gespeichert.
 
-Persistenter State gehört z. B. nach:
+## Updatecheck
 
-```text
-/var/lib/server-tools/projects/project-zomboid/
-```
+Der Schedulerjob project-zomboid-update läuft standardmäßig stündlich um Minute 55 von 00 bis 16 Uhr. Damit erfolgen automatische Restarts nicht in der regulären Spielzeit.
 
-Lokale Konfiguration gehört z. B. nach:
+Geprüft werden:
 
-```text
-/etc/server-tools/projects/project-zomboid/
-```
+1. Dedicated-Server-Manifest.
+2. Workshop-Modstatus über checkModsNeedUpdate.
+3. gemeinsamer Restartpfad bei Server- und/oder Modupdate.
 
-Keine Savegames, Workshopdaten, Server-Binaries oder Credentials gehören ins Repository.
+Ein manuell gestoppter Dienst wird nicht automatisch gestartet.
 
-## MQTT
+## Test/Migration
 
-Während der Migration werden bestehende Legacy-Meldungen für die vorhandene Node-RED-Verarbeitung zunächst weiter gesendet. Das neue server-tools-Schema wird parallel ergänzt.
+Zuerst Unit-Diff prüfen:
 
-Der bestehende Prozessname `gameserverupdate` bleibt während der Übergangsphase kompatibel erhalten.
+sudo /opt/server-tools/projects/project-zomboid/tools/install-systemd.sh --dry-run
+
+Dann kontrolliert anwenden:
+
+sudo /opt/server-tools/projects/project-zomboid/tools/install-systemd.sh --apply
+
+Vorhandene Units werden unter /etc/server-tools/projects/project-zomboid/backups/<timestamp>/ gesichert. Das Installationsscript startet den Gameserver nicht automatisch neu.
+
+Scheduler lokal aktivieren über /etc/server-tools/scheduler/scheduler-groups.conf:
+
+project-zomboid=enabled
+
+Während der Migration bleibt process=gameserverupdate auf dem Legacy-MQTT-Pfad erhalten und das neue server-tools-Schema wird parallel gesendet.
