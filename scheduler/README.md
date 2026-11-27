@@ -2,46 +2,39 @@
 
 Zentrale Jobsteuerung für server-tools.
 
-## Zielmodell
+Der unabhängige server-tools-Launcher wird minütlich aufgerufen. bootstrap/dispatch.sh startet anschließend den Scheduler. Fachliche Jobs bekommen deshalb keine eigenen Cron-Einträge mehr.
 
-- Fachliche Jobs werden nicht über eigene Cron-Einträge auf jedem Gerät geplant.
-- Cron startet ausschließlich den server-tools-Framework-Launcher.
-- Jobdefinitionen, Standardzeiten und Standard-Delays liegen zentral im Repository.
-- Lokale Overrides liegen außerhalb des Checkouts unter `/etc/server-tools/scheduler/`.
-- Das Gerät entscheidet lokal, welche Job-Gruppen es akzeptiert.
-- Neue Gruppen werden dadurch nicht allein durch eine GitHub-Änderung auf einem Gerät aktiviert.
-- Neue oder geänderte Jobs innerhalb einer lokal freigegebenen Gruppe dürfen zentral ausgerollt werden.
-- Persistenter Scheduler-State gehört nach `/var/lib/server-tools/scheduler/`.
-- Logs gehören nach `/var/log/server-tools/`.
+Zentrale Definitionen: /opt/server-tools/config/jobs.conf
 
-## Konfigurationspriorität
+Lokale Gruppenfreigabe: /etc/server-tools/scheduler/scheduler-groups.conf
 
-```text
-zentrale Jobdefinition
-        ↓
-lokaler Override
-        ↓
-effektive Jobkonfiguration
-```
+Lokale Overrides: /etc/server-tools/scheduler/jobs.local.conf
 
-Lokale Overrides dürfen insbesondere `enabled`, `schedule`, `random_delay` und definierte Laufzeitparameter anpassen. Scriptpfade, Integritätsregeln und zentrale Sicherheitsvorgaben sollen nicht lokal umgebogen werden.
+Alle Gruppen werden bei erstmaligem Auftreten lokal als disabled ergänzt. Dadurch aktiviert eine GitHub-Änderung keine neue Geräte-Rolle automatisch.
 
-## Random-Delay
+## Defaults
 
-Random-Delays werden vom Scheduler pro Ausführung neu berechnet. Dadurch starten viele Geräte nicht gleichzeitig dieselbe Aufgabe.
+- debian-update: 04:00 Uhr, Delay 0-7200 s, Gruppe base.
+- mount-check: stündlich, Delay 0-300 s, Gruppe base.
+- project-zomboid-update: Minute 55 von 00 bis 16 Uhr, kein Delay, Gruppe project-zomboid.
 
-Geplante Defaults:
+## Lokale Overrides
 
-```yaml
-debian-update:
-  schedule: "0 4 * * *"
-  random_delay: 7200
+Unterstützt werden:
 
-mount-check:
-  schedule: "0 * * * *"
-  random_delay: 300
-```
+- <job>.enabled=true|false
+- <job>.schedule=<5-field cron expression>
+- <job>.random_delay=<seconds>
+- <job>.timeout=<seconds; 0 = unbegrenzt>
+- <job>.user=<local user>
 
-Damit verteilt sich Debian-Update standardmäßig auf 04:00-06:00 Uhr. Das liegt nach dem regulären VM/LXC-Backupfenster von 02:00-04:00 Uhr.
+Ein Job-Override aktiviert keine lokal deaktivierte Gruppe.
 
-Der Scheduler selbst ist noch nicht vollständig implementiert.
+## Verhalten
+
+- Random-Delay wird pro Ausführung neu bestimmt.
+- Catch-up nach Downtime innerhalb eines 24-h-Fensters.
+- Überschneidende Läufe desselben Jobs werden per Lock übersprungen.
+- Jobs laufen asynchron, damit lange Jobs den minütlichen Launcher nicht blockieren.
+- Logs: /var/log/server-tools/jobs/<job>.log
+- State: /var/lib/server-tools/scheduler/
