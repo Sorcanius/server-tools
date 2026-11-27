@@ -71,11 +71,13 @@ Lokale Pfade:
 
 Cron ruft /usr/local/sbin/server-tools-launcher minütlich als root auf. Dieser unabhängige Launcher synchronisiert main standardmäßig alle 3600 Sekunden und startet bootstrap/dispatch.sh. Lokale Sync-Einstellungen haben Vorrang. Der Launcher aktualisiert sich nicht selbst. Unsichere oder unbekannte Checkouts werden nicht automatisch gelöscht.
 
-## Stand und geplante Funktionen
+## Stand
 
-Die Basisinstallation implementiert noch keinen MQTT-Versand, Scheduler, Vorlagenabgleich oder Logrotation. Keine Jobs sind aktiviert.
+Scheduler-Basis, Dual-MQTT, Debian-Update, Mount-Check und die erste Project-Zomboid-Migration sind implementiert und für kontrollierte Tests vorgesehen.
 
-Zentrale Standards mit lokalen Overrides; Gruppen lokal opt-in, Skripte mehrfach zuordenbar, lokale Ausschlüsse möglich. Neue Gruppen deaktiviert, neue Optionen auskommentiert ergänzen, bestehende Credentials erhalten. Framework-Abhängigkeiten automatisch installieren, skriptspezifische nur melden. Health-Checks rein diagnostisch. MQTT-Basis /home/device/server-tools, Kategorien critical/error/warning/success/heartbeat, Hostname am Ende, QoS 1, Heartbeat 300 Sekunden, Puffer letzte 10 Nachrichten maximal sechs Stunden. JSON: schema_version, event_id, system, service, details. Logs 30 Tage, 10 MB pro Datei, 250 MB gesamt. Skript-Locks, gemeinsamer Repository-Lock, Standardtimeout 30 Minuten, Überschneidungen standardmäßig überspringen.
+Neue Job-Gruppen werden lokal immer als deaktiviert angelegt. Erst ein lokales Opt-in unter /etc/server-tools/scheduler/scheduler-groups.conf aktiviert Jobs auf einem Gerät.
+
+Noch nicht vollständig umgesetzt sind unter anderem allgemeiner Vorlagenabgleich, die geplante zentrale Logrotation, Health-Checks und die spätere automatisierte Bereinigung der Altinstallationen. Siehe MIGRATION.md.
 
 
 ## Strukturregeln
@@ -106,7 +108,7 @@ Cron startet nur den server-tools-Framework-Launcher. Fachliche Jobs werden nich
 
 Zeitpläne und Standard-Delays liegen zentral im Repository. Lokale Geräte dürfen definierte Werte unter `/etc/server-tools/scheduler/` überschreiben. Die lokale Konfiguration entscheidet außerdem, welche Job-Gruppen ein Gerät akzeptiert.
 
-Geplante Defaults für die erste Migration:
+Aktuelle zentrale Defaults:
 
 - Debian-Update: täglich 04:00 Uhr, zufälliger Delay bis 7200 s; dadurch effektiver Start zwischen 04:00 und 06:00 Uhr nach dem regulären VM/LXC-Backupfenster.
 - Mount-Check: stündlich, zufälliger Delay bis 300 s.
