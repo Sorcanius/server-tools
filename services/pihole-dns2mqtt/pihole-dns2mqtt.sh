@@ -12,7 +12,7 @@ set -Eeuo pipefail
 # the original requester's IP address to each dnsmasq log line. This lets us
 # attribute an upstream forward to the client that caused it.
 
-CONFIG_FILE="${MQTT_CONFIG:-/etc/mqtt.env}"
+CONFIG_FILE="${MQTT_CONFIG:-/etc/server-tools/credentials/mqtt.env}"
 
 if [[ ! -r "$CONFIG_FILE" ]]; then
     echo "ERROR: MQTT config not readable: $CONFIG_FILE" >&2
@@ -88,7 +88,7 @@ if command -v stat >/dev/null 2>&1; then
     case "$mode" in
         400|600) ;;
         *)
-            echo "WARNING: $CONFIG_FILE has mode ${mode:-unknown}; recommended: 600 root:root." >&2
+            echo "WARNING: $CONFIG_FILE has mode ${mode:-unknown}; recommended: 640 root:server-tools (or stricter)." >&2
             ;;
     esac
 fi
