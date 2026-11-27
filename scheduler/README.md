@@ -38,3 +38,10 @@ Ein Job-Override aktiviert keine lokal deaktivierte Gruppe.
 - Jobs laufen asynchron, damit lange Jobs den minütlichen Launcher nicht blockieren.
 - Logs: /var/log/server-tools/jobs/<job>.log
 - State: /var/lib/server-tools/scheduler/
+
+
+## Ausführungsbenutzer
+
+Neue Jobs sollen standardmäßig als `server-tools` laufen. `run-job.sh` verwendet deshalb `server-tools` als Default, wenn kein Benutzer angegeben ist.
+
+Nur Jobs, die tatsächlich privilegierte Operationen benötigen, werden explizit mit `user=root` definiert. Aktuell betrifft das Debian-Update, Mount-Check und den Project-Zomboid-Updatecheck.
