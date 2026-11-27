@@ -2,11 +2,5 @@
 set -Eeuo pipefail
 [[ $EUID == 0 ]] || { echo "fix-permissions: root required" >&2; exit 1; }
 
-for path in /home/steam/Zomboid /mnt/steamcmd/pzserver2; do
-    if [[ -e "$path" ]]; then
-        echo "Setze steam:steam rekursiv auf $path"
-        chown -R steam:steam "$path"
-    else
-        echo "WARNUNG: nicht vorhanden: $path" >&2
-    fi
-done
+echo "Disabled: recursive privileged ownership changes in steam-writable trees are unsafe. Repair offline from a trusted maintenance environment." >&2
+exit 1
