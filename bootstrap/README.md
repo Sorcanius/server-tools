@@ -51,4 +51,4 @@ tail -n 50 /var/log/server-tools/launcher.log
 - dispatch.sh: zentral aktualisierbarer Einstiegspunkt.
 - setup-mqtt-env.sh: legt fehlende MQTT-Credentials an, ohne bestehende zu überschreiben.
 
-Der Launcher wird nicht automatisch selbst aktualisiert. Scheduler, MQTT-Versand, Logrotation und automatisches Ergänzen bestehender Konfigurationsdateien sind noch nicht implementiert.
+Der Launcher wird nicht automatisch selbst aktualisiert. Der Dispatcher ergänzt fehlende Scheduler-Gruppen lokal deaktiviert, pflegt fehlende MQTT-Konfigurationsschlüssel nach und ruft den zentralen Scheduler auf. Logrotation und weitergehender Vorlagenabgleich bleiben noch offen.
