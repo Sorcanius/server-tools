@@ -1,7 +1,7 @@
 # systemd
 
-Hier werden die Project-Zomboid-Unit-Dateien versioniert.
+Versionierte Project-Zomboid-Units. Produktiv installiert werden sie unter /etc/systemd/system/.
 
-Ziel ist, die tatsächlich produktiv verwendeten `zomboid.service`- und `zomboid.socket`-Definitionen kontrolliert zu übernehmen und später reproduzierbar nach `/etc/systemd/system/` auszurollen.
+zomboid.service läuft weiterhin als Benutzer steam. Der Startpfad zeigt auf die versionierte server-tools-Startlogik; Spieldaten und Server-Binaries bleiben unter /mnt/steamcmd/pzserver2.
 
-Der Gameserver selbst soll weiterhin mit `User=steam` laufen. server-tools orchestriert systemd, ersetzt systemd aber nicht.
+Installation/Abgleich erfolgt mit ../tools/install-systemd.sh.
