@@ -139,6 +139,20 @@ change_auth(){
  echo "Authentication changed to $mode. Existing SSH keys are preserved."
  "$launcher" --sync-now
 }
+update_launcher(){
+ require_root
+ [[ -f "$target/bootstrap/server-tools-launcher.sh" && ! -L "$target/bootstrap/server-tools-launcher.sh" ]] || die "Launcher source unavailable"
+ install -d -o root -g root -m 755 /run/server-tools
+ install -d -o root -g root -m 700 /run/server-tools/locks
+ local tmp
+ tmp=$(mktemp /usr/local/sbin/.server-tools-launcher.XXXXXX)
+ install -o root -g root -m 700 "$target/bootstrap/server-tools-launcher.sh" "$tmp"
+ (
+  flock -x 9
+  mv -T -- "$tmp" "$launcher"
+ ) 9>/run/server-tools/locks/launcher.lock
+ echo "Launcher updated: $launcher"
+}
 install_all(){
  local mode repo
  require_root
@@ -169,8 +183,9 @@ install_all(){
 case "${1:-help}" in
  install|auto) install_all ;;
  auth) change_auth "${2:-}" ;;
+ launcher-update) update_launcher ;;
  sync) require_root; "$launcher" --sync-now ;;
  status) git -c safe.directory="$target" -C "$target" status --short --branch; git -C "$target" -c safe.directory="$target" log -1 --oneline ;;
- help|-h|--help) echo "Usage: $0 {install|auto|sync|status|help|auth https|auth ssh}" ;;
+ help|-h|--help) echo "Usage: $0 {install|auto|sync|launcher-update|status|help|auth https|auth ssh}" ;;
  *) die "Unknown action" ;;
 esac
