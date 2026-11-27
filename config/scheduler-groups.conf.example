@@ -1,0 +1,5 @@
+# Local job-group opt-in template.
+# The dispatcher creates missing groups locally as disabled.
+# Enable only the groups this device should execute.
+base=disabled
+project-zomboid=disabled
