@@ -1,0 +1,9 @@
+[Unit]
+BindsTo=zomboid.service
+
+[Socket]
+ListenFIFO=/mnt/steamcmd/pzserver2/zomboid.control
+FileDescriptorName=control
+RemoveOnStop=true
+SocketMode=0660
+SocketUser=steam
