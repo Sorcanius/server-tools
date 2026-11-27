@@ -19,17 +19,21 @@
 
 set -u
 set -o pipefail
+umask 077
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+unset BASH_ENV ENV CDPATH
+cd /
 
 SCRIPT_NAME="$(basename "$0")"
 TOTAL_STEPS=10
 MODE="auto"                         # auto | force | never
-MQTT_SENDER="${MQTT_SENDER:-/opt/server-tools/lib/send2mqtt-legacy.sh}"
-SMART_POLL_SECONDS="${SMART_POLL_SECONDS:-60}"
-PROGRESS_INTERVAL_SECONDS="${PROGRESS_INTERVAL_SECONDS:-3600}"
-DISCONNECT_GRACE_SECONDS="${DISCONNECT_GRACE_SECONDS:-300}"
-DISCONNECT_POLL_SECONDS="${DISCONNECT_POLL_SECONDS:-5}"
-CHUNK_MIB="${CHUNK_MIB:-1024}"
-MAX_SMART_RESTARTS="${MAX_SMART_RESTARTS:-3}"
+MQTT_SENDER=/opt/server-tools/lib/send2mqtt-legacy.sh
+SMART_POLL_SECONDS=60
+PROGRESS_INTERVAL_SECONDS=3600
+DISCONNECT_GRACE_SECONDS=300
+DISCONNECT_POLL_SECONDS=5
+CHUNK_MIB=1024
+MAX_SMART_RESTARTS=3
 
 usage() {
   cat <<'HELP'
@@ -45,8 +49,7 @@ Usage:
   pi-usb-disk-check.sh --no-destructive
       SMART-only mode. Never overwrites a disk.
 
-Optional environment variables:
-  MQTT_SENDER=/opt/server-tools/lib/send2mqtt-legacy.sh
+Fixed safety defaults:
   SMART_POLL_SECONDS=60
   PROGRESS_INTERVAL_SECONDS=3600
   DISCONNECT_GRACE_SECONDS=300
@@ -67,24 +70,34 @@ case "${1:-}" in
   *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
 esac
 
-# Re-exec as root. The original user is retained via SUDO_USER for logs/MQTT.
+# Never trust a sudo caller's home, environment or writable checkpoints.
 if (( EUID != 0 )); then
-  exec sudo "$0" "$@"
+  echo "Run the installed tool explicitly as root." >&2
+  exit 1
 fi
-
-RUN_USER="${SUDO_USER:-root}"
-RUN_HOME="$(getent passwd "$RUN_USER" | awk -F: '{print $6}')"
-[[ -n "$RUN_HOME" ]] || RUN_HOME="/root"
-RUN_GROUP="$(id -gn "$RUN_USER" 2>/dev/null || echo "$RUN_USER")"
-LOGDIR="$RUN_HOME/smarttests"
-STATE_DIR="$RUN_HOME/.local/state/pi-usb-disk-check"
+RUN_USER=root
+RUN_GROUP=root
+RUN_HOME=/root
+LOGDIR=/var/log/server-tools/pi-usb-disk-check
+STATE_DIR=/var/lib/server-tools/pi-usb-disk-check
 QUEUE_DIR="$STATE_DIR/mqtt-queue"
 RUN_MARKER="$STATE_DIR/run.incomplete"
-mkdir -p "$LOGDIR" "$QUEUE_DIR"
-chown -R "$RUN_USER:$RUN_GROUP" "$LOGDIR" "$STATE_DIR" 2>/dev/null || true
+for d in /var /var/log /var/lib /var/log/server-tools /var/lib/server-tools "$LOGDIR" "$STATE_DIR" "$QUEUE_DIR"; do
+  if [[ -e "$d" || -L "$d" ]]; then
+    [[ -d "$d" && ! -L "$d" && $(stat -c %u "$d") == 0 ]] || exit 1
+    m=$(stat -c %a "$d")
+    (( (8#$m & 0022) == 0 )) || exit 1
+  else
+    install -d -o root -g root -m 700 "$d" || exit 1
+  fi
+done
+for d in "$LOGDIR" "$STATE_DIR"; do
+  bad=$(find "$d" \( -type l -o ! -user root -o -perm /022 -o \( ! -type f ! -type d \) \) -print -quit) || exit 1
+  [[ -z "$bad" ]] || exit 1
+done
 
 # Prevent concurrent destructive disk-check instances.
-exec 9>/run/lock/pi-usb-disk-check.lock
+exec 9>"$STATE_DIR/run.lock"
 if ! flock -n 9; then
   echo "Another pi-usb-disk-check instance is already running." >&2
   exit 1
