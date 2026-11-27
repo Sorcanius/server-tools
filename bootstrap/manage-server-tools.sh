@@ -126,7 +126,8 @@ change_auth(){
  remote=$(git -C "$target" remote get-url origin)
  [[ "$remote" == "$(repo_for "$old")" ]] || die "Unexpected remote"
  verify_auth "$mode"
- install -d -o root -g root -m 755 /run/server-tools\n install -d -o root -g root -m 700 /run/server-tools/locks
+ install -d -o root -g root -m 755 /run/server-tools
+ install -d -o root -g root -m 700 /run/server-tools/locks
  (
   flock -n -x 9 || die "Launcher busy; retry"
   flock -n -x 8 || die "Repository busy; retry"
