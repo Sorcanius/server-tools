@@ -1,0 +1,7 @@
+// Project Zomboid dedicated server update
+@ShutdownOnFailedCommand 1
+@NoPromptForPassword 1
+force_install_dir /mnt/steamcmd/pzserver2
+login anonymous
+app_update 380870 validate
+quit
