@@ -141,39 +141,25 @@ change_auth(){
  "$launcher" --sync-now
 }
 update_launcher(){
- require_root
- [[ -f "$target/bootstrap/server-tools-launcher.sh" && ! -L "$target/bootstrap/server-tools-launcher.sh" ]] || die "Launcher source unavailable"
- install -d -o root -g root -m 755 /run/server-tools
- install -d -o root -g root -m 700 /run/server-tools/locks
- local tmp
- tmp=$(mktemp /usr/local/sbin/.server-tools-launcher.XXXXXX)
- install -o root -g root -m 700 "$target/bootstrap/server-tools-launcher.sh" "$tmp"
- (
-  flock -x 9
-  mv -T -- "$tmp" "$launcher"
- ) 9>/run/server-tools/locks/launcher.lock
- echo "Launcher updated: $launcher"
+ die "Launcher trust anchor must be installed manually from independently verified code; see SECURITY.md"
 }
 install_all(){
  local mode repo
  require_root
  [[ ! -L /opt && ! -L "$target" ]] || die "Unsafe checkout path"
+ [[ -f /etc/server-tools/config/allowed-signers && ! -L /etc/server-tools/config/allowed-signers ]] || die "Provision trusted signing key first; see SECURITY.md"
+ [[ -f "$launcher" && ! -L "$launcher" ]] || die "Install independently verified launcher first; see SECURITY.md"
  install_base
  setup_account
  setup_dirs
  mode=$(choose_auth)
  verify_auth "$mode"
  repo=$(repo_for "$mode")
- if [[ ! -d "$target/.git" ]]; then
-  [[ ! -e "$target" || ( -d "$target" && -z $(ls -A "$target") ) ]] || die "Target not empty"
-  git clone --branch main --single-branch "$repo" "$target"
+ if [[ -e "$target" ]]; then
+  [[ -d "$target/.git" && ! -L "$target/.git" && $(stat -c %u:%g "$target") == 0:0 ]] || die "Unsafe repository owner"
+  [[ $(git -C "$target" remote get-url origin) == "$repo" ]] || die "Unexpected remote"
  fi
- [[ $(stat -c %u:%g "$target") == 0:0 && ! -L "$target/.git" ]] || die "Unsafe repository owner"
- [[ $(git -C "$target" remote get-url origin) == "$repo" ]] || die "Unexpected remote"
  save_auth "$mode"
- if [[ ! -e "$launcher" ]]; then
-  install -o root -g root -m 700 "$target/bootstrap/server-tools-launcher.sh" "$launcher"
- fi
  "$launcher" --sync-now
  install -d -m 755 /etc/cron.d
  printf '%s\n' '* * * * * root /usr/local/sbin/server-tools-launcher >> /var/log/server-tools/launcher.log 2>&1' > /etc/cron.d/server-tools
