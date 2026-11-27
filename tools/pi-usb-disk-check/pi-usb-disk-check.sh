@@ -176,11 +176,10 @@ clear_state() {
 raw_mqtt_send() {
   local msg="$1"
   [[ -x "$MQTT_SENDER" ]] || return 1
-  if [[ "$RUN_USER" != "root" ]]; then
-    printf '%s\n' "$msg" | sudo -u "$RUN_USER" "$MQTT_SENDER"
-  else
-    printf '%s\n' "$msg" | "$MQTT_SENDER"
-  fi
+  # The disk checker itself requires root for raw block-device access.
+  # MQTT publishing therefore stays in the same privileged process; the
+  # original sudo user is still used only for ownership of generated logs/state.
+  printf '%s\n' "$msg" | "$MQTT_SENDER"
 }
 
 queue_mqtt() {
