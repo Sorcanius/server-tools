@@ -6,11 +6,12 @@ Bei einem öffentlichen Repository als root ausführen:
 
 ```bash
 apt-get update && apt-get install -y curl ca-certificates
-curl -fsSL https://raw.githubusercontent.com/Sorcanius/server-tools/main/bootstrap/manage-server-tools.sh -o /tmp/manage-server-tools.sh
-bash /tmp/manage-server-tools.sh install
+umask 077
+curl --proto '=https' -fsS https://raw.githubusercontent.com/Sorcanius/server-tools/main/bootstrap/manage-server-tools.sh -o /root/manage-server-tools.sh
+bash /root/manage-server-tools.sh install
 ```
 
-Bei einem privaten Repository [manage-server-tools.sh](https://github.com/Sorcanius/server-tools/blob/main/bootstrap/manage-server-tools.sh) im angemeldeten Browser als Raw-Datei herunterladen, auf das Zielgerät nach /tmp/manage-server-tools.sh übertragen und als root mit dem letzten Befehl starten.
+Bei einem privaten Repository [manage-server-tools.sh](https://github.com/Sorcanius/server-tools/blob/main/bootstrap/manage-server-tools.sh) im angemeldeten Browser als Raw-Datei herunterladen, auf das Zielgerät nach /root/manage-server-tools.sh übertragen und als root mit dem letzten Befehl starten.
 
 Der Installer prüft anonymen HTTPS-Zugriff. Ist er möglich, stehen HTTPS (Standard, ohne Credentials) und SSH zur Auswahl. Andernfalls kann SSH eingerichtet werden; ein fehlgeschlagener HTTPS-Test beweist nicht, dass das Repository privat ist.
 
@@ -53,4 +54,4 @@ tail -n 50 /var/log/server-tools/launcher.log
 - setup-mqtt-env.sh: legt fehlende MQTT-Credentials an, ohne bestehende zu überschreiben.
 - apply-permissions.sh: setzt und verifiziert nach jedem Sync die lokalen Least-Privilege-Dateirechte.
 
-Der Launcher wird nicht automatisch selbst aktualisiert. Nach einer Änderung des versionierten Launchers erfolgt die bewusste Aktualisierung mit `manage-server-tools.sh launcher-update`. Der Dispatcher ergänzt fehlende Scheduler-Gruppen lokal deaktiviert, pflegt fehlende MQTT-Konfigurationsschlüssel nach, erzwingt die Berechtigungsrichtlinie und ruft den zentralen Scheduler auf. Logrotation und weitergehender Vorlagenabgleich bleiben noch offen.
+Der Launcher wird nicht automatisch selbst aktualisiert. GitHub und der Repository-Schreibzugriff sind bewusst Vertrauensinstanzen; keine manuelle Commit-Signatur erforderlich. Vor der ersten Aktualisierung auf diese Version den bestehenden Checkout und seine Eltern auf Root-Eigentum und fehlende Gruppen-/Fremdschreibrechte prüfen. Nach einer Änderung des versionierten Launchers erfolgt die bewusste Aktualisierung mit `manage-server-tools.sh launcher-update`. Der Dispatcher ergänzt fehlende Scheduler-Gruppen lokal deaktiviert, pflegt fehlende MQTT-Konfigurationsschlüssel nach, erzwingt die Berechtigungsrichtlinie und ruft den zentralen Scheduler auf. Logrotation und weitergehender Vorlagenabgleich bleiben noch offen.
