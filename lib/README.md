@@ -2,4 +2,7 @@
 
 Gemeinsam verwendbare Funktionen für server-tools.
 
-Hier gehören ausschließlich wiederverwendbare Bibliotheksfunktionen hin, keine direkt geplanten Jobs oder eigenständigen Services.
+- mqtt.sh – neues MQTT-Schema plus Legacy-Dual-Publishing während der Migration.
+- send2mqtt-legacy.sh – stdin-kompatibler Übergangshelfer für bestehende Tools.
+
+Credentials liegen ausschließlich lokal unter /etc/server-tools/credentials/mqtt.env.
