@@ -6,6 +6,8 @@ set -Eeuo pipefail
 repo=/opt/server-tools
 account=server-tools
 
+id "$account" >/dev/null 2>&1 || { echo "server-tools permissions: account '$account' missing" >&2; exit 1; }
+
 set_root_file() {
     local mode=$1 path=$2
     [[ -e "$path" && ! -L "$path" ]] || return 0
@@ -103,3 +105,46 @@ for dir in     /etc/server-tools/config     /etc/server-tools/scheduler     /var
 done
 
 set_root_file 600 /var/log/server-tools/launcher.log
+
+
+verify_file_mode() {
+    local expected_owner=$1 expected_group=$2 expected_mode=$3 path=$4 actual
+    [[ -e "$path" && ! -L "$path" ]] || return 0
+    actual=$(stat -c '%U:%G:%a' "$path")
+    if [[ "$actual" != "$expected_owner:$expected_group:$expected_mode" ]]; then
+        echo "server-tools permissions: unexpected permissions on $path: $actual (expected $expected_owner:$expected_group:$expected_mode)" >&2
+        return 1
+    fi
+}
+
+verify_dir_mode() {
+    verify_file_mode "$@"
+}
+
+# Fail closed if a privileged path was not tightened as intended.
+for path in "${root_exec[@]}"; do verify_file_mode root root 700 "$path"; done
+for path in "${root_read[@]}"; do verify_file_mode root root 600 "$path"; done
+verify_file_mode root "$account" 640 "$repo/lib/mqtt.sh"
+verify_file_mode root "$account" 750 "$repo/lib/send2mqtt-legacy.sh"
+verify_file_mode root "$account" 750 "$repo/services/pihole-dns2mqtt/pihole-dns2mqtt.sh"
+
+if id steam >/dev/null 2>&1 && getent group steam >/dev/null 2>&1; then
+    verify_file_mode root steam 640 "$repo/projects/project-zomboid/config.conf"
+    verify_file_mode root steam 640 "$repo/projects/project-zomboid/lib/common.sh"
+    verify_file_mode root steam 750 "$repo/projects/project-zomboid/service/start-server.sh"
+    verify_file_mode root steam 640 "$repo/projects/project-zomboid/service/steam-update.txt"
+fi
+
+verify_file_mode root root 700 /usr/local/sbin/server-tools-launcher
+verify_file_mode root root 600 /etc/cron.d/server-tools
+verify_file_mode root root 600 /etc/server-tools/config/github.conf
+verify_file_mode root root 600 /etc/server-tools/config/sync.conf
+verify_file_mode root root 600 /etc/server-tools/scheduler/scheduler-groups.conf
+verify_file_mode root root 600 /etc/server-tools/scheduler/jobs.local.conf
+verify_file_mode root root 600 /etc/server-tools/credentials/github.key
+verify_file_mode root root 600 /etc/server-tools/credentials/github_known_hosts
+verify_file_mode root "$account" 640 /etc/server-tools/credentials/mqtt.env
+
+for dir in     /etc/server-tools/config     /etc/server-tools/scheduler     /var/lib/server-tools/bootstrap     /var/lib/server-tools/scheduler     /var/log/server-tools/jobs     /run/server-tools/locks; do
+    verify_dir_mode root root 700 "$dir"
+done
