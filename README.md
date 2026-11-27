@@ -102,6 +102,18 @@ Projektbezogene Tools gehören in `projects/<projekt>/tools/`; generische Tools 
 
 Dauerhafte Dienste werden weiterhin von systemd betrieben. server-tools versioniert und verteilt Unit-Dateien, orchestriert Updates/Start/Stop/Restart und führt periodische Jobs aus, ersetzt systemd aber nicht.
 
+## Ausführungs- und Berechtigungsmodell
+
+server-tools verwendet Least Privilege:
+
+- Jobs und Werkzeuge, die Paketverwaltung, Mounts, systemd oder Raw-Blockgeräte verändern, laufen als root.
+- Root-exklusive Framework-/Jobskripte werden nach jedem Sync lokal auf root:root mit Modus 700 gesetzt; zugehörige root-exklusive Konfigurationsdateien auf 600.
+- Der installierte Launcher und die lokale Scheduler-/Git-Konfiguration werden ebenfalls root-only gehalten.
+- Gemeinsame Bibliotheken und MQTT-Credentials können gezielt für den Systembenutzer server-tools freigegeben werden; MQTT-Credentials standardmäßig root:server-tools 640.
+- Nicht privilegierte Framework-Komponenten sollen grundsätzlich als server-tools laufen.
+- Anwendungsdienste mit eigenem Servicekonto behalten dieses Konto. Project Zomboid läuft deshalb weiterhin als steam; nur die dafür erforderlichen Start-/Konfigurationsdateien werden root:steam 750/640 freigegeben.
+- Die Rechte werden zentral durch bootstrap/apply-permissions.sh nach dem Sync erneut durchgesetzt.
+
 ## Scheduler-Grundsätze
 
 Cron startet nur den server-tools-Framework-Launcher. Fachliche Jobs werden nicht dauerhaft als eigene Cron-Einträge gepflegt.
