@@ -4,6 +4,12 @@ umask 022
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 [[ $EUID == 0 ]] || { echo "project-zomboid update: root required" >&2; exit 1; }
+CHECK_ONLY=false
+case "${1:-}" in
+    "") ;;
+    --check-only) CHECK_ONLY=true ;;
+    *) echo "Usage: $0 [--check-only]" >&2; exit 2 ;;
+esac
 source /opt/server-tools/projects/project-zomboid/lib/common.sh
 source /opt/server-tools/lib/mqtt.sh
 
@@ -85,6 +91,12 @@ if [[ "$service_active" != true ]]; then
     warning="Update erkannt, aber $PZ_SERVICE ist gestoppt; kein automatischer Start/Restart."
     echo "$warning" >&2
     mqtt_publish_event warning project-zomboid "$warning" 0 "$details"
+    exit 0
+fi
+
+if [[ "$CHECK_ONLY" == true ]]; then
+    echo "CHECK-ONLY: Update erkannt; kein Countdown/Restart."
+    mqtt_publish_event warning project-zomboid "Check-only: $reason_text erkannt; kein Restart" 0 "$details"
     exit 0
 fi
 
