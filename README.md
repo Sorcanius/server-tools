@@ -110,7 +110,7 @@ Zeitpläne und Standard-Delays liegen zentral im Repository. Lokale Geräte dür
 
 Aktuelle zentrale Defaults:
 
-- Debian-Update: täglich 04:00 Uhr, zufälliger Delay bis 7200 s; dadurch effektiver Start zwischen 04:00 und 06:00 Uhr nach dem regulären VM/LXC-Backupfenster.
+- Debian-Update: täglich 04:00 Uhr, zufälliger Delay bis 7200 s; dadurch effektiver Start zwischen 04:00 und 06:00 Uhr.
 - Mount-Check: stündlich, zufälliger Delay bis 300 s.
 - Project-Zomboid-Update: Wartungsfenster entsprechend dem bisherigen Betrieb; automatische Restarts nicht während der regulären Spielzeit.
 
