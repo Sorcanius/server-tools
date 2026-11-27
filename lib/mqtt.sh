@@ -1,10 +1,24 @@
 #!/usr/bin/env bash
-SERVER_TOOLS_MQTT_CONFIG="${SERVER_TOOLS_MQTT_CONFIG:-/etc/server-tools/credentials/mqtt.env}"
+if (( EUID == 0 )); then
+    SERVER_TOOLS_MQTT_CONFIG=/etc/server-tools/credentials/mqtt.env
+else
+    SERVER_TOOLS_MQTT_CONFIG="${SERVER_TOOLS_MQTT_CONFIG:-/etc/server-tools/credentials/mqtt.env}"
+fi
 
 _mqtt_loaded=0
 mqtt_load_config() {
     (( _mqtt_loaded == 1 )) && return 0
     if [[ -r "$SERVER_TOOLS_MQTT_CONFIG" ]]; then
+        if (( EUID == 0 )); then
+            local p="$SERVER_TOOLS_MQTT_CONFIG" m
+            while [[ "$p" != / ]]; do
+                [[ ! -L "$p" && $(stat -c %u -- "$p") == 0 ]] || return 1
+                m=$(stat -c %a -- "$p") || return 1
+                (( (8#$m & 0022) == 0 )) || return 1
+                p=$(dirname -- "$p")
+            done
+            [[ -f "$SERVER_TOOLS_MQTT_CONFIG" ]] || return 1
+        fi
         # shellcheck disable=SC1090
         source "$SERVER_TOOLS_MQTT_CONFIG"
     fi
@@ -41,7 +55,7 @@ _mqtt_pub() {
 }
 
 mqtt_publish_legacy_json() {
-    mqtt_load_config
+    mqtt_load_config || return 1
     _mqtt_bool_true "$MQTT_LEGACY_ENABLED" || return 0
     _mqtt_configured_host "$MQTT_LEGACY_HOST" || return 0
     local payload=${1:?payload required}
@@ -76,7 +90,7 @@ _mqtt_primary_mac() {
 }
 
 mqtt_publish_event() {
-    mqtt_load_config
+    mqtt_load_config || return 1
     _mqtt_bool_true "$MQTT_NEW_ENABLED" || return 0
     _mqtt_configured_host "$MQTT_HOST" || return 0
 
