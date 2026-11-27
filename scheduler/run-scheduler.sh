@@ -169,13 +169,13 @@ while IFS='|' read -r job group schedule delay timeout_s run_user script; do
     if [[ -r "$pending" ]]; then
         read -r pending_slot due < "$pending" || true
         if [[ "$pending_slot" =~ ^[0-9]+$ && "$due" =~ ^[0-9]+$ ]] && (( now >= due )); then
-            printf '%s\n' "$pending_slot" > "$job_state/last-scheduled"
-            rm -f "$pending"
             if launch_job "$job" "$script" "$run_user" "$timeout_s" "$now"; then
+                printf '%s\n' "$pending_slot" > "$job_state/last-scheduled"
                 printf '%s\n' "$now" > "$job_state/last-launch"
+                rm -f "$pending"
                 echo "server-tools scheduler: launched $job (slot=$pending_slot due=$due)"
             else
-                echo "server-tools scheduler: failed to launch $job" >&2
+                echo "server-tools scheduler: failed to launch $job; will retry" >&2
             fi
         fi
     fi
