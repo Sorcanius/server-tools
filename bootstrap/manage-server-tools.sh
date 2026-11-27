@@ -71,7 +71,7 @@ setup_github(){
   (umask 077; set -o noclobber; printf '%s\n' 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl' > "$hosts")
  fi
  chown root:root "$hosts"
- chmod 644 "$hosts"
+ chmod 600 "$hosts"
  until timeout 30 git ls-remote --exit-code "$repo" refs/heads/main >/dev/null; do
   echo "GitHub access not available. Add this PUBLIC key as a read-only Deploy Key:"
   echo "https://github.com/Sorcanius/server-tools/settings/keys"
@@ -114,7 +114,7 @@ save_auth(){
  local tmp
  tmp=$(mktemp /etc/server-tools/config/.github.conf.XXXXXX)
  printf '%s\n' '# Authentication method: https (public) or ssh (public/private).' "AUTH_METHOD=$1" > "$tmp"
- chmod 644 "$tmp"
+ chmod 600 "$tmp"
  mv -T -- "$tmp" "$auth_file"
 }
 change_auth(){
@@ -126,7 +126,7 @@ change_auth(){
  remote=$(git -C "$target" remote get-url origin)
  [[ "$remote" == "$(repo_for "$old")" ]] || die "Unexpected remote"
  verify_auth "$mode"
- install -d -o root -g root -m 755 /run/server-tools /run/server-tools/locks
+ install -d -o root -g root -m 755 /run/server-tools\n install -d -o root -g root -m 700 /run/server-tools/locks
  (
   flock -n -x 9 || die "Launcher busy; retry"
   flock -n -x 8 || die "Repository busy; retry"
