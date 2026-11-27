@@ -18,7 +18,7 @@ install -d -o root -g root -m 700     /etc/server-tools/config     /etc/server-t
 install -d -o root -g root -m 755 /var/lib/server-tools/projects
 
 if [[ ! -e /etc/server-tools/config/sync.conf ]]; then
-    (umask 022; set -o noclobber; sed '/^[a-z]/s/^/# /' "$repo/config/sync.conf" > /etc/server-tools/config/sync.conf)
+    (umask 077; set -o noclobber; sed '/^[a-z]/s/^/# /' "$repo/config/sync.conf" > /etc/server-tools/config/sync.conf)
 fi
 
 "$repo/bootstrap/setup-mqtt-env.sh" >/dev/null
