@@ -95,9 +95,11 @@ if [[ -f /etc/server-tools/credentials/mqtt.env && ! -L /etc/server-tools/creden
     chmod 640 /etc/server-tools/credentials/mqtt.env
 fi
 
-# Privileged scheduler state/logs are root-only.
-for dir in /var/lib/server-tools/scheduler /var/log/server-tools/jobs /run/server-tools/locks; do
+# Privileged framework configuration/state/logs are root-only.
+for dir in     /etc/server-tools/config     /etc/server-tools/scheduler     /var/lib/server-tools/bootstrap     /var/lib/server-tools/scheduler     /var/log/server-tools/jobs     /run/server-tools/locks; do
     [[ -d "$dir" && ! -L "$dir" ]] || continue
     chown root:root "$dir"
     chmod 700 "$dir"
 done
+
+set_root_file 600 /var/log/server-tools/launcher.log
