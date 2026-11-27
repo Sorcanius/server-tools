@@ -1,0 +1,16 @@
+# Local scheduler overrides.
+# Copy/edit locally as /etc/server-tools/scheduler/jobs.local.conf.
+# Existing local values are never stored in Git.
+#
+# Supported keys:
+#   <job>.enabled=true|false
+#   <job>.schedule=<5-field cron expression>
+#   <job>.random_delay=<seconds>
+#   <job>.timeout=<seconds; 0 = no timeout>
+#   <job>.user=<local user>
+#
+# Examples:
+# debian-update.schedule=30 4 * * *
+# debian-update.random_delay=3600
+# mount-check.enabled=false
+# project-zomboid-update.schedule=55 0-14 * * *
