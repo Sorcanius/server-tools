@@ -85,6 +85,8 @@ if [[ ${1:-} == --sync-now ]] || (( now-last >= interval && now-attempt >= retry
   die "Repository busy"
  fi
 fi
-[[ -f "$target/bootstrap/dispatch.sh" ]] || die "Dispatcher unavailable"
+[[ -f "$target/bootstrap/dispatch.sh" && -f "$target/bootstrap/apply-permissions.sh" ]] || die "Dispatcher unavailable"
+chown root:root "$target/bootstrap/dispatch.sh" "$target/bootstrap/apply-permissions.sh"
+chmod 700 "$target/bootstrap/dispatch.sh" "$target/bootstrap/apply-permissions.sh"
 flock -n -s 8 || exit 0
 /usr/bin/bash "$target/bootstrap/dispatch.sh" 9>&- || die "Dispatcher failed"
