@@ -1,0 +1,18 @@
+[Unit]
+Description=Zomboid Server
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+ExecStart=/opt/server-tools/projects/project-zomboid/service/start-server.sh
+WorkingDirectory=/mnt/steamcmd
+Restart=on-failure
+Type=simple
+User=steam
+KillSignal=SIGCONT
+ExecStop=/bin/sh -c "echo save > /mnt/steamcmd/pzserver2/zomboid.control; sleep 15; echo quit > /mnt/steamcmd/pzserver2/zomboid.control"
+Sockets=zomboid.socket
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target
