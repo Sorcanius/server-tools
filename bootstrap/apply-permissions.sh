@@ -21,6 +21,14 @@ set_group_file() {
     chmod "$mode" "$path"
 }
 
+# Baseline for shell code: root owns repository code, while the dedicated
+# server-tools account may read/execute non-privileged framework scripts.
+# Privileged and service-specific paths are tightened/overridden below.
+while IFS= read -r -d '' path; do
+    chown root:"$account" "$path"
+    chmod 750 "$path"
+done < <(find "$repo" -path "$repo/.git" -prune -o -type f -name '*.sh' -print0)
+
 # Root-only framework entry points and privileged jobs/tools.
 root_exec=(
     "$repo/bootstrap/apply-permissions.sh"
